@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="60" viewBox="0 0 200 60">
+  <style>
+    .logo-text { font-family: Arial, sans-serif; font-weight: bold; }
+    .primary { fill: #4a6fa5; }
+    .secondary { fill: #2c3e50; }
+  </style>
+  <rect x="10" y="15" width="30" height="30" rx="5" class="primary" />
+  <circle cx="25" cy="30" r="8" fill="white" />
+  <path d="M45 20h10v20H45z" class="secondary" />
+  <path d="M60 20h10l5 10-5 10H60z" class="secondary" />
+  <text x="80" y="38" class="logo-text primary" font-size="18">TechCorp</text>
+  <text x="80" y="48" class="logo-text secondary" font-size="10">Solutions</text>
+</svg>

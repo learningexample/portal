@@ -1,0 +1,341 @@
+import dash
+from dash import dcc, html
+import dash_bootstrap_components as dbc
+from dash.dependencies import Input, Output
+import yaml
+import os
+
+# Load configuration from YAML file
+def load_config():
+    config_path = os.path.join(os.path.dirname(__file__), 'config.yaml')
+    try:
+        with open(config_path, 'r') as file:
+            config = yaml.safe_load(file)
+        return config
+    except Exception as e:
+        print(f"Error loading configuration: {e}")
+        return {}
+
+config = load_config()
+
+# Company and user information
+company_info = config.get('company', {})
+user_info = config.get('user', {})
+
+# Initialize the app with a Bootstrap theme and Font Awesome icons
+app_title = f"{company_info.get('name', 'Enterprise')} AI Portal" 
+app = dash.Dash(__name__, 
+                external_stylesheets=[
+                    dbc.themes.BOOTSTRAP,
+                    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+                ],
+                meta_tags=[
+                    {'name': 'viewport', 'content': 'width=device-width, initial-scale=1.0'},
+                    {'name': 'description', 'content': 'Enterprise AI Portal for accessing departmental AI applications'}
+                ],
+                title=app_title,
+                update_title=f"Loading {app_title}...")
+
+# Add favicon - explicitly set to override Dash default
+app._favicon = None  # Disable default Dash favicon
+
+# Add our own favicon to the index template
+index_string = '''
+<!DOCTYPE html>
+<html>
+    <head>
+        {%metas%}
+        <title>{%title%}</title>
+        <link rel="icon" type="image/svg+xml" href="/assets/images/favicon.svg">
+        <link rel="shortcut icon" type="image/x-icon" href="/assets/favicon.ico">
+        {%css%}
+    </head>
+    <body>
+        {%app_entry%}
+        <footer>
+            {%config%}
+            {%scripts%}
+            {%renderer%}
+        </footer>
+    </body>
+</html>
+'''
+
+app.index_string = index_string
+
+server = app.server  # for deployment purposes
+
+# Get departments from config
+departments = [dept['name'] for dept in config.get('departments', [])]
+
+# Create a dictionary of apps for each department
+apps = {}
+for dept in config.get('departments', []):
+    dept_name = dept['name']
+    apps[dept_name] = dept.get('apps', [])
+
+# Add app store apps
+app_store = config.get('app_store', {})
+app_store_title = app_store.get('title', "AI App Store")
+app_store_icon = app_store.get('icon', "fa-solid fa-store")
+app_store_description = app_store.get('description', "Discover and install the latest AI applications")
+apps['App Store'] = app_store.get('apps', [])
+
+# Add shared apps
+apps['Shared'] = config.get('shared', {}).get('apps', [])
+shared_title = config.get('shared', {}).get('title', "Shared Apps")
+shared_icon = config.get('shared', {}).get('icon', "fa-solid fa-share-nodes")
+
+# Icon color mapping for different departments and shared apps
+icon_colors = {
+    'Finance': '#2E7D32',  # Green
+    'Marketing': '#C62828',  # Red
+    'Operations': '#0277BD',  # Blue
+    'HR': '#6A1B9A',  # Purple
+    'IT': '#EF6C00',  # Orange
+    'Shared': '#00695C',  # Teal
+    'App Store': '#1565C0',  # Blue
+}
+
+# App-specific icon color mapping
+app_icon_colors = {
+    'Financial Forecasting': '#43A047',
+    'Expense Analysis': '#1B5E20',
+    'Customer Segmentation': '#D32F2F',
+    'Campaign Optimizer': '#B71C1C',
+    'Supply Chain Prediction': '#1976D2',
+    'Quality Control': '#0D47A1',
+    'Resume Screening': '#8E24AA',
+    'Employee Attrition Model': '#4A148C',
+    'Incident Prediction': '#F57C00',
+    'Automated Code Review': '#E65100',
+    'Document AI': '#00ACC1',
+    'Chatbot Assistant': '#00838F',
+    'Data Visualization': '#00695C',
+    'Text Analyzer': '#1E88E5',
+    'Image Generator': '#039BE5',
+    'Voice Assistant': '#0277BD',
+}
+
+# Create the app cards with colorful icons
+def create_app_cards(dept):
+    cards = []
+    for app in apps.get(dept, []):
+        icon = app.get('icon', 'fa-solid fa-cube')  # Default icon if none specified
+        
+        # Set icon color based on app name or fall back to department color
+        icon_color = app_icon_colors.get(app['name'], icon_colors.get(dept, company_info.get('theme_color', '#4a6fa5')))
+        
+        card = dbc.Card([
+            dbc.CardBody([
+                # Card content container with flex display
+                html.Div([
+                    # Header section
+                    html.Div([
+                        html.I(className=f"{icon} fa-2x me-2", style={"color": icon_color}),
+                        html.H5(app['name'], className="card-title d-inline-block align-middle mb-0")
+                    ], className="d-flex align-items-center mb-3"),
+                    
+                    # Description section - will stretch to fill available space
+                    html.Div([
+                        html.P(app['description'], className="card-text")
+                    ], className="flex-grow-1 mb-3"),
+                    
+                    # Button section - always at the bottom
+                    html.Div([
+                        dbc.Button([
+                            html.I(className="fas fa-external-link-alt me-2"),
+                            "Launch App"
+                        ], color="primary", href=app['url'], className="w-100")
+                    ])
+                ], className="d-flex flex-column h-100") # Make the div take full height of card
+            ])
+        ], className="mb-4 h-100")
+        cards.append(card)
+    return cards
+
+# User profile dropdown
+user_dropdown = dbc.DropdownMenu(
+    children=[
+        dbc.DropdownMenuItem([
+            html.Div([
+                html.Img(src=user_info.get('avatar_url', ''), className="rounded-circle me-2", width=30, height=30),
+                html.Span(user_info.get('name', 'User')),
+            ], className="d-flex align-items-center")
+        ], header=True),
+        dbc.DropdownMenuItem(user_info.get('role', 'User'), header=True),
+        dbc.DropdownMenuItem(divider=True),
+        dbc.DropdownMenuItem([html.I(className="fas fa-user me-2"), "Profile"]),
+        dbc.DropdownMenuItem([html.I(className="fas fa-cog me-2"), "Settings"]),
+        dbc.DropdownMenuItem(divider=True),
+        dbc.DropdownMenuItem([html.I(className="fas fa-sign-out-alt me-2"), "Sign Out"]),
+    ],
+    nav=True,
+    in_navbar=True,
+    label="",
+    toggle_style={"color": "transparent", "background": "transparent", "border": "none"},
+    toggleClassName="p-0",
+    align_end=True,
+)
+
+# Top Navigation Bar
+navbar = dbc.Navbar(
+    dbc.Container(
+        [
+            # Company Logo and Brand
+            html.A(
+                dbc.Row(
+                    [
+                        dbc.Col(html.Img(src=company_info.get('logo_url', ''), height="40px"), className="me-2"),
+                        dbc.Col(dbc.NavbarBrand(company_info.get('name', config.get('title', "AI Portal")), className="ms-2")),
+                    ],
+                    align="center",
+                    className="g-0",
+                ),
+                href="#",
+                style={"textDecoration": "none"},
+            ),
+            dbc.NavbarToggler(id="navbar-toggler"),
+            dbc.Collapse(
+                dbc.Nav(
+                    [
+                        # App Store navigation item
+                        dbc.NavItem(dbc.NavLink([
+                            html.I(className=f"{app_store_icon} me-2"),
+                            app_store_title
+                        ], href="#app-store")),
+                        # Department navigation menu
+                        dbc.DropdownMenu(
+                            [dbc.DropdownMenuItem(
+                                [html.I(className=f"{config.get('departments', [])[i].get('icon', 'fa-solid fa-folder')} me-2"), dept], 
+                                href=f"#{dept.lower()}"
+                             ) for i, dept in enumerate(departments)],
+                            label="Departments",
+                            nav=True,
+                            className="mx-2"
+                        ),
+                        # Shared apps menu item
+                        dbc.NavItem(dbc.NavLink([
+                            html.I(className=f"{shared_icon} me-2"),
+                            shared_title
+                        ], href="#shared")),
+                        # User profile dropdown
+                        user_dropdown,
+                    ],
+                    className="ms-auto",
+                    navbar=True,
+                ),
+                id="navbar-collapse",
+                navbar=True,
+            ),
+        ],
+        fluid=True,
+    ),
+    color="light",
+    dark=False,
+    className="mb-4",
+    sticky="top",
+)
+
+# Section headers with colorful icons
+def create_section_header(title, icon, id_name, dept=None):
+    # Set icon color based on department
+    icon_color = icon_colors.get(dept, company_info.get('theme_color', '#4a6fa5'))
+    
+    return html.H2([
+        html.I(className=f"{icon} me-2", style={"color": icon_color}),
+        title
+    ], id=id_name, className="mt-4 mb-3")
+
+# Main content layout - App Store first, then Shared apps, then department apps
+content = html.Div(
+    [
+        # AI App Store section (first)
+        html.Div([
+            create_section_header(app_store_title, app_store_icon, "app-store", "App Store"),
+            html.P(app_store_description, className="lead mb-4"),
+            dbc.Row([
+                dbc.Col(card, md=4) for card in create_app_cards('App Store')
+            ], className="g-4")
+        ], className="mb-5"),
+        
+        # Shared apps section (second)
+        html.Div([
+            create_section_header(shared_title, shared_icon, "shared", "Shared"),
+            dbc.Row([
+                dbc.Col(card, md=4) for card in create_app_cards('Shared')
+            ], className="g-4")
+        ])
+    ] + [
+        # Department apps sections (after shared)
+        html.Div([
+            create_section_header(
+                f"{dept} AI Applications",
+                next((d.get('icon', 'fa-solid fa-folder') for d in config.get('departments', []) if d['name'] == dept), 'fa-solid fa-folder'),
+                f"{dept.lower()}",
+                dept
+            ),
+            dbc.Row([
+                dbc.Col(card, md=4) for card in create_app_cards(dept)
+            ], className="g-4")
+        ]) for dept in departments
+    ],
+    className="container",
+    style={
+        "padding": "1rem",
+    },
+)
+
+# Footer with company information
+footer = html.Footer(
+    dbc.Container(
+        [
+            html.Hr(),
+            dbc.Row([
+                dbc.Col([
+                    html.Div([
+                        html.Img(src=company_info.get('logo_url', ''), height="30px", className="me-2"),
+                        html.Span(company_info.get('name', config.get('title', "AI Portal")), className="fw-bold")
+                    ], className="d-flex align-items-center mb-2"),
+                    html.P("© 2025 All rights reserved.", className="text-muted small")
+                ], md=6),
+                dbc.Col([
+                    html.Div([
+                        dbc.Button([html.I(className="fab fa-github")], color="link", className="text-dark me-2"),
+                        dbc.Button([html.I(className="fab fa-linkedin")], color="link", className="text-dark me-2"),
+                        dbc.Button([html.I(className="fab fa-twitter")], color="link", className="text-dark me-2")
+                    ], className="d-flex justify-content-end")
+                ], md=6, className="d-flex align-items-center")
+            ])
+        ],
+        fluid=True,
+        className="py-3"
+    ),
+    className="mt-5 bg-light"
+)
+
+# App layout
+app.layout = html.Div([
+    dcc.Location(id="url"),
+    navbar,
+    content,
+    footer
+])
+
+# Callback to toggle the navbar collapse on small screens
+@app.callback(
+    Output("navbar-collapse", "is_open"),
+    [Input("navbar-toggler", "n_clicks")],
+    [dash.dependencies.State("navbar-collapse", "is_open")],
+)
+def toggle_navbar_collapse(n, is_open):
+    if n:
+        return not is_open
+    return is_open
+
+if __name__ == '__main__':
+    # Get port from environment variable or default to 8050
+    port = int(os.environ.get('PORT', 8050))
+    
+    # Run server, allow connections from any host for Docker
+    app.run_server(debug=False, host='0.0.0.0', port=port)
