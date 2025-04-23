@@ -1,5 +1,5 @@
 import dash
-from dash import dcc, html
+from dash import dcc, html, clientside_callback, Input, Output, ClientsideFunction
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output
 import yaml
@@ -22,8 +22,12 @@ config = load_config()
 company_info = config.get('company', {})
 user_info = config.get('user', {})
 
+# Get portal title from config
+portal_title = config.get('title', "Enterprise AI Portal")
+portal_description = config.get('description', "Central portal for departmental AI applications")
+
 # Initialize the app with a Bootstrap theme and Font Awesome icons
-app_title = f"{company_info.get('name', 'Enterprise')} AI Portal" 
+app_title = f"{company_info.get('name', 'Enterprise')} {portal_title} (Tabbed)" 
 app = dash.Dash(__name__, 
                 external_stylesheets=[
                     dbc.themes.BOOTSTRAP,
@@ -31,13 +35,13 @@ app = dash.Dash(__name__,
                 ],
                 meta_tags=[
                     {'name': 'viewport', 'content': 'width=device-width, initial-scale=1.0'},
-                    {'name': 'description', 'content': 'Enterprise AI Portal for accessing departmental AI applications'}
+                    {'name': 'description', 'content': portal_description}
                 ],
                 title=app_title,
                 update_title=f"Loading {app_title}...",
-                url_base_pathname="/portal-1/")
+                url_base_pathname="/portal-2/")
 
-# Add favicon - explicitly set to override Dash default
+# Add favicon
 app._favicon = None  # Disable default Dash favicon
 
 # Add our own favicon to the index template
@@ -83,9 +87,14 @@ app_store_description = app_store.get('description', "Discover and install the l
 apps['App Store'] = app_store.get('apps', [])
 
 # Add shared apps
-apps['Shared'] = config.get('shared', {}).get('apps', [])
-shared_title = config.get('shared', {}).get('title', "Shared Apps")
-shared_icon = config.get('shared', {}).get('icon', "fa-solid fa-share-nodes")
+shared = config.get('shared', {})
+apps['Shared'] = shared.get('apps', [])
+shared_title = shared.get('title', "Shared Apps")
+shared_icon = shared.get('icon', "fa-solid fa-share-nodes")
+shared_description = shared.get('description', "Applications shared across all departments")
+
+# Theme color from company settings
+theme_color = company_info.get('theme_color', '#4a6fa5')
 
 # Icon color mapping for different departments and shared apps
 icon_colors = {
@@ -99,33 +108,16 @@ icon_colors = {
 }
 
 # App-specific icon color mapping
-app_icon_colors = {
-    'Financial Forecasting': '#43A047',
-    'Expense Analysis': '#1B5E20',
-    'Customer Segmentation': '#D32F2F',
-    'Campaign Optimizer': '#B71C1C',
-    'Supply Chain Prediction': '#1976D2',
-    'Quality Control': '#0D47A1',
-    'Resume Screening': '#8E24AA',
-    'Employee Attrition Model': '#4A148C',
-    'Incident Prediction': '#F57C00',
-    'Automated Code Review': '#E65100',
-    'Document AI': '#00ACC1',
-    'Chatbot Assistant': '#00838F',
-    'Data Visualization': '#00695C',
-    'Text Analyzer': '#1E88E5',
-    'Image Generator': '#039BE5',
-    'Voice Assistant': '#0277BD',
-}
+app_icon_colors = {}
 
-# Create the app cards with colorful icons
+# Create app cards with colorful icons
 def create_app_cards(dept):
     cards = []
     for app in apps.get(dept, []):
         icon = app.get('icon', 'fa-solid fa-cube')  # Default icon if none specified
         
         # Set icon color based on app name or fall back to department color
-        icon_color = app_icon_colors.get(app['name'], icon_colors.get(dept, company_info.get('theme_color', '#4a6fa5')))
+        icon_color = app_icon_colors.get(app['name'], icon_colors.get(dept, theme_color))
         
         card = dbc.Card([
             dbc.CardBody([
@@ -152,7 +144,7 @@ def create_app_cards(dept):
                 ], className="d-flex flex-column h-100") # Make the div take full height of card
             ])
         ], className="mb-4 h-100")
-        cards.append(card)
+        cards.append(dbc.Col(card, md=4))
     return cards
 
 # User profile dropdown
@@ -188,7 +180,7 @@ navbar = dbc.Navbar(
                 dbc.Row(
                     [
                         dbc.Col(html.Img(src=company_info.get('logo_url', ''), height="40px"), className="me-2"),
-                        dbc.Col(dbc.NavbarBrand(company_info.get('name', config.get('title', "AI Portal")), className="ms-2")),
+                        dbc.Col(dbc.NavbarBrand(company_info.get('name', portal_title), className="ms-2")),
                     ],
                     align="center",
                     className="g-0",
@@ -204,22 +196,8 @@ navbar = dbc.Navbar(
                         dbc.NavItem(dbc.NavLink([
                             html.I(className=f"{app_store_icon} me-2"),
                             app_store_title
-                        ], href="#app-store")),
-                        # Department navigation menu
-                        dbc.DropdownMenu(
-                            [dbc.DropdownMenuItem(
-                                [html.I(className=f"{config.get('departments', [])[i].get('icon', 'fa-solid fa-folder')} me-2"), dept], 
-                                href=f"#{dept.lower()}"
-                             ) for i, dept in enumerate(departments)],
-                            label="Departments",
-                            nav=True,
-                            className="mx-2"
-                        ),
-                        # Shared apps menu item
-                        dbc.NavItem(dbc.NavLink([
-                            html.I(className=f"{shared_icon} me-2"),
-                            shared_title
-                        ], href="#shared")),
+                        ], href="#")),
+                        
                         # User profile dropdown
                         user_dropdown,
                     ],
@@ -238,53 +216,90 @@ navbar = dbc.Navbar(
     sticky="top",
 )
 
-# Section headers with colorful icons
-def create_section_header(title, icon, id_name, dept=None):
-    # Set icon color based on department
-    icon_color = icon_colors.get(dept, company_info.get('theme_color', '#4a6fa5'))
+# Main content layout with tabs
+def build_tabs():
+    # Create tab items array
+    tab_items = []
     
-    return html.H2([
-        html.I(className=f"{icon} me-2", style={"color": icon_color}),
-        title
-    ], id=id_name, className="mt-4 mb-3")
+    # First tab for Shared Apps
+    tab_items.append({
+        "id": "tab-shared",
+        "label": shared_title,
+        "icon": shared_icon,
+        "color": icon_colors.get('Shared', theme_color)
+    })
+    
+    # Tab for each department
+    for dept in departments:
+        dept_icon = next((d.get('icon', 'fa-solid fa-folder') 
+                         for d in config.get('departments', []) 
+                         if d['name'] == dept), 'fa-solid fa-folder')
+        tab_items.append({
+            "id": f"tab-{dept.lower()}",
+            "label": dept,
+            "icon": dept_icon,
+            "color": icon_colors.get(dept, theme_color)
+        })
+    
+    # Last tab for App Store
+    tab_items.append({
+        "id": "tab-app-store",
+        "label": app_store_title,
+        "icon": app_store_icon,
+        "color": icon_colors.get('App Store', theme_color)
+    })
+    
+    # Create the tab nav items (the clickable tabs themselves)
+    tab_nav_items = []
+    for item in tab_items:
+        tab_nav_items.append(
+            html.Li(
+                dbc.NavLink(
+                    item["label"],
+                    id={"type": "tab-link", "index": item["id"]},
+                    active=item["id"] == "tab-shared",
+                    class_name=f"tab-with-icon {item['icon']}",
+                    style={"color": item["color"]},
+                ),
+                className="nav-item",
+                id={"type": "tab-li", "index": item["id"]},
+                **{"data-tab-id": item["id"]}  # Store the tab ID as a data attribute
+            )
+        )
+    
+    # Create the tabs component
+    tabs_component = html.Div([
+        # Hidden input to store the current active tab
+        dcc.Input(id="active-tab-state", type="hidden", value="tab-shared"),
+        # Create the nav tabs container
+        html.Ul(
+            tab_nav_items,
+            className="nav nav-tabs mb-4",
+            id="regular-tabs"
+        ),
+        # Tab content will be rendered here
+        html.Div(id="tab-content", className="mt-3")
+    ])
+    
+    return tabs_component
 
-# Main content layout - App Store first, then Shared apps, then department apps
-content = html.Div(
-    [
-        # AI App Store section (first)
-        html.Div([
-            create_section_header(app_store_title, app_store_icon, "app-store", "App Store"),
-            html.P(app_store_description, className="lead mb-4"),
-            dbc.Row([
-                dbc.Col(card, md=4) for card in create_app_cards('App Store')
-            ], className="g-4")
-        ], className="mb-5"),
-        
-        # Shared apps section (second)
-        html.Div([
-            create_section_header(shared_title, shared_icon, "shared", "Shared"),
-            dbc.Row([
-                dbc.Col(card, md=4) for card in create_app_cards('Shared')
-            ], className="g-4")
-        ])
-    ] + [
-        # Department apps sections (after shared)
-        html.Div([
-            create_section_header(
-                f"{dept} AI Applications",
-                next((d.get('icon', 'fa-solid fa-folder') for d in config.get('departments', []) if d['name'] == dept), 'fa-solid fa-folder'),
-                f"{dept.lower()}",
-                dept
-            ),
-            dbc.Row([
-                dbc.Col(card, md=4) for card in create_app_cards(dept)
-            ], className="g-4")
-        ]) for dept in departments
-    ],
-    className="container",
-    style={
-        "padding": "1rem",
-    },
+# Replace the original tabs with our simplified version
+tabs = build_tabs()
+
+# Main layout container
+content_container = html.Div(id="tab-content", className="mt-3")
+
+# Create tab content container
+tab_content = html.Div(
+    dbc.Container(
+        [
+            tabs,
+            content_container
+        ],
+        fluid=True,
+        className="py-3"
+    ),
+    className="mb-5"
 )
 
 # Footer with company information
@@ -296,9 +311,9 @@ footer = html.Footer(
                 dbc.Col([
                     html.Div([
                         html.Img(src=company_info.get('logo_url', ''), height="30px", className="me-2"),
-                        html.Span(company_info.get('name', config.get('title', "AI Portal")), className="fw-bold")
+                        html.Span(company_info.get('name', portal_title), className="fw-bold")
                     ], className="d-flex align-items-center mb-2"),
-                    html.P("© 2025 All rights reserved.", className="text-muted small")
+                    html.P(f"© {company_info.get('copyright_year', '2025')} All rights reserved.", className="text-muted small")
                 ], md=6),
                 dbc.Col([
                     html.Div([
@@ -319,9 +334,82 @@ footer = html.Footer(
 app.layout = html.Div([
     dcc.Location(id="url"),
     navbar,
-    content,
+    tab_content,
     footer
 ])
+
+# Callback to update the tab content based on selected tab
+@app.callback(
+    Output("tab-content", "children"),  # Changed output target to match the correct ID
+    Input("active-tab-state", "value")
+)
+def render_tab_content(active_tab):  # Renamed function for clarity
+    if active_tab == "tab-shared":
+        # Shared apps tab
+        return html.Div([
+            html.H3([
+                html.I(className=f"{shared_icon} me-2", style={"color": icon_colors.get('Shared', theme_color)}),
+                shared_title
+            ]),
+            html.P(shared_description, className="lead mb-3") if shared_description else None,
+            html.Hr(),
+            dbc.Row(create_app_cards('Shared'), className="g-4")
+        ])
+    elif active_tab == "tab-app-store":
+        # App Store tab
+        return html.Div([
+            html.H3([
+                html.I(className=f"{app_store_icon} me-2", style={"color": icon_colors.get('App Store', theme_color)}),
+                app_store_title
+            ]),
+            html.P(app_store_description, className="lead mb-3") if app_store_description else None,
+            html.Hr(),
+            dbc.Row(create_app_cards('App Store'), className="g-4")
+        ])
+    else:
+        # Department tab
+        for dept in departments:
+            if active_tab == f"tab-{dept.lower()}":
+                dept_info = next((d for d in config.get('departments', []) if d['name'] == dept), {})
+                dept_icon = dept_info.get('icon', 'fa-solid fa-folder')
+                dept_description = dept_info.get('description', '')
+                
+                return html.Div([
+                    html.H3([
+                        html.I(className=f"{dept_icon} me-2", style={"color": icon_colors.get(dept, theme_color)}),
+                        f"{dept} AI Applications"
+                    ]),
+                    html.P(dept_description, className="lead mb-3") if dept_description else None,
+                    html.Hr(),
+                    dbc.Row(create_app_cards(dept), className="g-4")
+                ])
+    
+    # Default to empty div if no match
+    return html.Div([])
+
+# Callback to handle tab clicks
+@app.callback(
+    [Output("active-tab-state", "value"),
+     Output({"type": "tab-link", "index": dash.dependencies.ALL}, "active")],
+    [Input({"type": "tab-link", "index": dash.dependencies.ALL}, "n_clicks")],
+    [dash.dependencies.State("active-tab-state", "value")]
+)
+def handle_tab_click(n_clicks, active_tab):
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        # Default active tab
+        active_states = [tab_id == "tab-shared" for tab_id in ["tab-shared"] + [f"tab-{dept.lower()}" for dept in departments] + ["tab-app-store"]]
+        return "tab-shared", active_states
+    
+    # Get the tab ID that was clicked
+    triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    tab_id = eval(triggered_id)["index"]
+    
+    # Set all tabs to inactive except the clicked one
+    all_tab_ids = ["tab-shared"] + [f"tab-{dept.lower()}" for dept in departments] + ["tab-app-store"]
+    active_states = [tab_id == current_tab_id for current_tab_id in all_tab_ids]
+    
+    return tab_id, active_states
 
 # Callback to toggle the navbar collapse on small screens
 @app.callback(

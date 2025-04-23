@@ -88,6 +88,144 @@ h2 {
     scroll-margin-top: 70px; /* Ensures the section isn't hidden under navbar */
 }
 
+/* Tab styling with icons */
+.tab-with-icon {
+    position: relative;
+    padding-left: 32px !important;
+}
+
+.tab-with-icon::before {
+    font-family: "Font Awesome 6 Free", "Font Awesome 6 Solid";
+    font-weight: 900;
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* Tab font styling for business look */
+.nav-tabs .nav-item .nav-link {
+    font-family: 'Arial', 'Helvetica Neue', Helvetica, sans-serif;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    font-size: 14px;
+}
+
+/* Active tab styling */
+.nav-tabs .nav-item .nav-link.active {
+    border-color: #dee2e6 #dee2e6 #fff;
+    font-weight: bold;
+}
+
+/* Icon classes for tabs */
+.tab-with-icon.fa-solid.fa-share-nodes::before {
+    content: "\f1e0";
+    color: #00695C;
+}
+
+.tab-with-icon.fa-solid.fa-store::before {
+    content: "\f54e";
+    color: #1565C0;
+}
+
+.tab-with-icon.fa-solid.fa-folder::before {
+    content: "\f07b";
+}
+
+.tab-with-icon.fa-solid.fa-money-bill::before {
+    content: "\f0d6";
+    color: #2E7D32;
+}
+
+.tab-with-icon.fa-solid.fa-bullhorn::before {
+    content: "\f0a1";
+    color: #C62828;
+}
+
+.tab-with-icon.fa-solid.fa-cogs::before {
+    content: "\f085";
+    color: #0277BD;
+}
+
+.tab-with-icon.fa-solid.fa-users::before {
+    content: "\f0c0";
+    color: #6A1B9A;
+}
+
+.tab-with-icon.fa-solid.fa-laptop-code::before {
+    content: "\f5fc";
+    color: #EF6C00;
+}
+
+/* Draggable Tab Styling */
+.sortable-tabs {
+    display: flex;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    padding-bottom: 2px;
+}
+
+.draggable-tab {
+    cursor: grab;
+    position: relative;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.draggable-tab:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.draggable-tab:active {
+    cursor: grabbing;
+}
+
+/* Style for the ghost element during drag */
+.tab-ghost {
+    opacity: 0.5;
+    background: #f8f9fa;
+}
+
+/* Style for the chosen tab during drag */
+.tab-chosen {
+    background-color: #fff;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+}
+
+/* Style for the dragging tab */
+.tab-drag {
+    opacity: 0.8;
+}
+
+/* Make the tabs look more 3D when dragging */
+.draggable-tab.tab-chosen {
+    transform: scale(1.02);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+/* Custom handle for the tabs */
+.draggable-tab::before {
+    content: "⋮";
+    position: absolute;
+    left: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0;
+    transition: opacity 0.2s;
+    color: #aaa;
+    cursor: grab;
+}
+
+.draggable-tab:hover::before {
+    opacity: 1;
+}
+
+/* Ensure tab content doesn't get cropped during transition */
+.draggable-tab a {
+    padding-left: 20px;
+}
+
 /* For mobile responsiveness */
 @media (max-width: 768px) {
     .container {

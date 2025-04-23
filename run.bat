@@ -2,10 +2,10 @@
 setlocal enabledelayedexpansion
 
 :: Enterprise AI Portal management script
-:: Usage: run.bat [stop|build|run|restart]
+:: Usage: run.bat [stop|build|run|restart|test|test-tabbed]
 
 if "%1"=="" (
-    goto :usage
+    call :restart_app
 ) else if "%1"=="stop" (
     call :stop_app
 ) else if "%1"=="build" (
@@ -14,6 +14,10 @@ if "%1"=="" (
     call :run_full
 ) else if "%1"=="restart" (
     call :restart_app
+) else if "%1"=="test" (
+    call :test_app
+) else if "%1"=="test-tabbed" (
+    call :test_tabbed_app
 ) else (
     goto :usage
 )
@@ -52,16 +56,28 @@ goto :end
     echo === Full deployment completed ===
     goto :eof
 
+:test_app
+    echo === Testing standard app locally ===
+    echo Starting Python app.py...
+    python app.py
+    goto :eof
+
+:test_tabbed_app
+    echo === Testing tabbed version locally ===
+    echo Starting Python app_tabbed.py...
+    python app_tabbed.py
+    goto :eof
+
 :usage
-    echo Usage: %~nx0 {stop^|build^|run^|restart}
+    echo Usage: %~nx0 {stop^|build^|run^|restart^|test^|test-tabbed}
     echo.
     echo Commands:
-    echo   stop     - Stop all running containers
-    echo   build    - Build the Docker image
-    echo   run      - Stop any running containers, build, and then run the application (full deployment)
-    echo   restart  - Restart the application without rebuilding
-    echo.
-    echo To run locally without Docker, use: python app.py
+    echo   stop        - Stop all running containers
+    echo   build       - Build the Docker image
+    echo   run         - Stop any running containers, build, and then run the application (full deployment)
+    echo   restart     - Restart the application without rebuilding (default if no command is specified)
+    echo   test        - Run the standard app locally without Docker (python app.py)
+    echo   test-tabbed - Run the tabbed app locally without Docker (python app_tabbed.py)
     goto :eof
 
 :end
