@@ -35,7 +35,7 @@ app = dash.Dash(__name__,
                 ],
                 title=app_title,
                 update_title=f"Loading {app_title}...",
-                url_base_pathname="/portal-1/")
+                url_base_pathname="/portal-3/")
 
 # Add favicon - explicitly set to override Dash default
 app._favicon = None  # Disable default Dash favicon
@@ -50,6 +50,18 @@ index_string = '''
         <link rel="icon" type="image/svg+xml" href="/assets/images/favicon.svg">
         <link rel="shortcut icon" type="image/x-icon" href="/assets/favicon.ico">
         {%css%}
+        <script>
+            // Function to store section state in localStorage
+            function storeSectionState(sectionId, isOpen) {
+                localStorage.setItem('portal3_section_' + sectionId, isOpen);
+            }
+            
+            // Function to get section state from localStorage
+            function getSectionState(sectionId, defaultState) {
+                const storedState = localStorage.getItem('portal3_section_' + sectionId);
+                return storedState === null ? defaultState : (storedState === 'true');
+            }
+        </script>
     </head>
     <body>
         {%app_entry%}
@@ -86,12 +98,6 @@ apps['App Store'] = app_store.get('apps', [])
 apps['Shared'] = config.get('shared', {}).get('apps', [])
 shared_title = config.get('shared', {}).get('title', "Shared Apps")
 shared_icon = config.get('shared', {}).get('icon', "fa-solid fa-share-nodes")
-shared_description = config.get('shared', {}).get('description', "Cross-departmental AI tools")
-
-# Get department descriptions
-dept_descriptions = {}
-for dept in config.get('departments', []):
-    dept_descriptions[dept['name']] = dept.get('description', "")
 
 # Icon color mapping for different departments and shared apps
 icon_colors = {
@@ -244,64 +250,75 @@ navbar = dbc.Navbar(
     sticky="top",
 )
 
-# Section headers with colorful icons
-def create_section_header(title, icon, id_name, dept=None):
+# Section headers with colorful icons - now with collapsible functionality
+def create_collapsible_section_header(title, icon, id_name, dept=None):
     # Set icon color based on department
     icon_color = icon_colors.get(dept, company_info.get('theme_color', '#4a6fa5'))
     
-    return html.H2([
-        html.I(className=f"{icon} me-2", style={"color": icon_color}),
-        title
-    ], id=id_name, className="mt-4 mb-3")
+    # Create a toggle button with the section title
+    return html.Div([
+        html.Div(
+            [
+                html.I(className=f"{icon} me-2", style={"color": icon_color}),
+                html.H2(title, className="d-inline m-0"),
+                html.I(
+                    id=f"{id_name}-chevron",
+                    className="fas fa-chevron-down ms-2",
+                    style={"transition": "transform 0.3s"}
+                )
+            ],
+            id=f"{id_name}-header",
+            className="d-flex align-items-center mt-4 mb-3 collapsible-header",
+            style={"cursor": "pointer"}
+        ),
+    ], id=id_name)
 
-# Main content layout - App Store first as a non-section element, then Shared apps, then department apps
+# Main content layout with collapsible sections
 content = html.Div(
     [
-        # AI App Store section (first, but not as a section)
+        # AI App Store section (first)
         html.Div([
-            # Banner image
-            html.Img(src=app_store.get('banner_image', 'assets/images/app-store-banner.svg'), 
-                    className="img-fluid mb-3 rounded",
-                    alt="AI App Store Banner",
-                    style={"maxWidth": "100%"}),
-            
-            # Title with enhanced styling
-            html.Div([
-                html.I(className=f"{app_store_icon} me-3", style={"color": icon_colors.get("App Store"), "fontSize": "2.2rem"}),
-                html.H1(app_store_title, className="d-inline m-0", 
-                      style={"fontWeight": "700", "color": "#1565C0", "letterSpacing": "0.5px"})
-            ], className="d-flex align-items-center mb-3"),
-            
-            # Description and cards
-            html.Div([
-                html.P(app_store_description, className="lead mb-4"),
-                dbc.Row([
-                    dbc.Col(card, md=4) for card in create_app_cards('App Store')
-                ], className="g-4")
-            ])
+            create_collapsible_section_header(app_store_title, app_store_icon, "app-store", "App Store", is_open=False),
+            dbc.Collapse(
+                [
+                    html.P(app_store_description, className="lead mb-4"),
+                    dbc.Row([
+                        dbc.Col(card, md=4) for card in create_app_cards('App Store')
+                    ], className="g-4")
+                ],
+                id="collapse-app-store",
+                is_open=False,
+            )
         ], className="mb-5"),
         
-        # Shared apps section (second)
+        # Shared apps section (second) - expanded by default
         html.Div([
-            create_section_header(shared_title, shared_icon, "shared", "Shared"),
-            html.P(shared_description, className="lead mb-4"),
-            dbc.Row([
-                dbc.Col(card, md=4) for card in create_app_cards('Shared')
-            ], className="g-4")
+            create_collapsible_section_header(shared_title, shared_icon, "shared", "Shared", is_open=True),
+            dbc.Collapse(
+                dbc.Row([
+                    dbc.Col(card, md=4) for card in create_app_cards('Shared')
+                ], className="g-4"),
+                id="collapse-shared",
+                is_open=True,
+            )
         ], className="mb-5")
     ] + [
         # Department apps sections (after shared)
         html.Div([
-            create_section_header(
+            create_collapsible_section_header(
                 f"{dept} AI Applications",
                 next((d.get('icon', 'fa-solid fa-folder') for d in config.get('departments', []) if d['name'] == dept), 'fa-solid fa-folder'),
                 f"{dept.lower()}",
-                dept
+                dept,
+                is_open=False
             ),
-            html.P(dept_descriptions.get(dept, ""), className="lead mb-4"),
-            dbc.Row([
-                dbc.Col(card, md=4) for card in create_app_cards(dept)
-            ], className="g-4")
+            dbc.Collapse(
+                dbc.Row([
+                    dbc.Col(card, md=4) for card in create_app_cards(dept)
+                ], className="g-4"),
+                id=f"collapse-{dept.lower()}",
+                is_open=False,
+            )
         ], className="mb-5") for dept in departments
     ],
     className="container",
@@ -338,9 +355,11 @@ footer = html.Footer(
     className="mt-5 bg-light"
 )
 
-# App layout
+# App layout with HTML5 clientside localStorage handler
 app.layout = html.Div([
     dcc.Location(id="url"),
+    # Hidden div for storing client-side data
+    html.Div(id='localStorage-div', style={'display': 'none'}),
     navbar,
     content,
     footer
@@ -356,6 +375,149 @@ def toggle_navbar_collapse(n, is_open):
     if n:
         return not is_open
     return is_open
+
+# Create callbacks for each collapsible section
+# Replace the loop-based callback creation with individual callbacks
+
+# App Store section callback
+@app.callback(
+    [Output("collapse-app-store", "is_open"),
+     Output("app-store-header", "children")],
+    [Input("app-store-header", "n_clicks")],
+    [dash.dependencies.State("collapse-app-store", "is_open")]
+)
+def toggle_app_store(n, is_open):
+    if not n:
+        return dash.no_update, dash.no_update
+    
+    icon_color = icon_colors.get("App Store", company_info.get('theme_color', '#4a6fa5'))
+    header_content = [
+        html.I(className=f"{app_store_icon} me-2", style={"color": icon_color}),
+        html.H2(app_store_title, className="d-inline m-0"),
+        html.I(
+            className="fas fa-chevron-down ms-2",
+            style={
+                "transition": "transform 0.3s", 
+                "transform": "rotate(0deg)" if not is_open else "rotate(-90deg)"
+            }
+        )
+    ]
+    return not is_open, header_content
+
+# Shared section callback
+@app.callback(
+    [Output("collapse-shared", "is_open"),
+     Output("shared-header", "children")],
+    [Input("shared-header", "n_clicks")],
+    [dash.dependencies.State("collapse-shared", "is_open")]
+)
+def toggle_shared(n, is_open):
+    if not n:
+        return dash.no_update, dash.no_update
+    
+    icon_color = icon_colors.get("Shared", company_info.get('theme_color', '#4a6fa5'))
+    header_content = [
+        html.I(className=f"{shared_icon} me-2", style={"color": icon_color}),
+        html.H2(shared_title, className="d-inline m-0"),
+        html.I(
+            className="fas fa-chevron-down ms-2",
+            style={
+                "transition": "transform 0.3s", 
+                "transform": "rotate(0deg)" if not is_open else "rotate(-90deg)"
+            }
+        )
+    ]
+    return not is_open, header_content
+
+# Generate callbacks for department sections
+def generate_dept_callback(dept):
+    dept_id = dept.lower()
+    dept_icon = next((d.get('icon', 'fa-solid fa-folder') for d in config.get('departments', []) if d['name'] == dept), 'fa-solid fa-folder')
+    
+    @app.callback(
+        [Output(f"collapse-{dept_id}", "is_open"),
+         Output(f"{dept_id}-header", "children")],
+        [Input(f"{dept_id}-header", "n_clicks")],
+        [dash.dependencies.State(f"collapse-{dept_id}", "is_open")]
+    )
+    def toggle_dept(n, is_open, dept=dept, dept_id=dept_id, dept_icon=dept_icon):
+        if not n:
+            return dash.no_update, dash.no_update
+        
+        icon_color = icon_colors.get(dept, company_info.get('theme_color', '#4a6fa5'))
+        header_content = [
+            html.I(className=f"{dept_icon} me-2", style={"color": icon_color}),
+            html.H2(f"{dept} AI Applications", className="d-inline m-0"),
+            html.I(
+                className="fas fa-chevron-down ms-2",
+                style={
+                    "transition": "transform 0.3s", 
+                    "transform": "rotate(0deg)" if not is_open else "rotate(-90deg)"
+                }
+            )
+        ]
+        return not is_open, header_content
+    
+    return toggle_dept
+
+# Create department callbacks
+for dept in departments:
+    callback_fn = generate_dept_callback(dept)
+    # We need to give each function a unique name
+    callback_fn.__name__ = f"toggle_{dept.lower().replace(' ', '_')}"
+
+# Store collapse state in localStorage via ClientsideCallback
+app.clientside_callback(
+    """
+    function(section_id, is_open) {
+        if (section_id) {
+            storeSectionState(section_id, is_open);
+        }
+        return '';
+    }
+    """,
+    Output("url", "search"),  # Dummy output, we don't actually change anything
+    [Input("collapse-app-store", "is_open"),
+     Input("collapse-shared", "is_open")] +
+    [Input(f"collapse-{dept.lower()}", "is_open") for dept in departments],
+    [Input("app-store", "id"),
+     Input("shared", "id")] +
+    [Input(f"{dept.lower()}", "id") for dept in departments]
+)
+
+# Load saved section states from localStorage on page load
+app.clientside_callback(
+    """
+    function() {
+        // Initialize section states from localStorage
+        return {
+            'app-store': getSectionState('app-store', false),
+            'shared': getSectionState('shared', true),
+            // Add all department sections
+            ${',\\n            '.join([f"'{dept.lower()}': getSectionState('{dept.lower()}', false)" for dept in departments])}
+        };
+    }
+    """,
+    Output("section-states", "data"),
+    [Input("url", "pathname")]
+)
+
+# Set initial collapse states based on localStorage values
+@app.callback(
+    [Output("collapse-app-store", "is_open"),
+     Output("collapse-shared", "is_open")] +
+    [Output(f"collapse-{dept.lower()}", "is_open") for dept in departments],
+    [Input("section-states", "data")]
+)
+def initialize_collapse_states(states):
+    if not states:
+        # Default states if localStorage is empty
+        return [False, True] + [False] * len(departments)
+    
+    return [
+        states.get("app-store", False),
+        states.get("shared", True)
+    ] + [states.get(dept.lower(), False) for dept in departments]
 
 if __name__ == '__main__':
     # Get port from environment variable or default to 8050

@@ -13,8 +13,8 @@ COPY . .
 ENV PORT=8050
 ENV PYTHONUNBUFFERED=1
 
-# Create start script that can run both portals
-RUN echo '#!/bin/bash\nif [ "$PORTAL_VERSION" = "tabbed" ]; then\n  python app_tabbed.py\nelse\n  python app.py\nfi' > /app/start.sh \
+# Create start script that can run all portal versions
+RUN echo '#!/bin/bash\nif [ "$PORTAL_VERSION" = "tabbed" ]; then\n  python app_bytab.py\nelif [ "$PORTAL_VERSION" = "bysection" ]; then\n  python app-bysection.py\nelse\n  python app.py\nfi' > /app/start.sh \
     && chmod +x /app/start.sh
 
 # Expose the port the app runs on

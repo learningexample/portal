@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 :: Enterprise AI Portal management script
-:: Usage: run.bat [stop|build|run|restart|test|test-tabbed]
+:: Usage: run.bat [stop|build|run|restart|test|test-tabbed|test-bysection]
 
 if "%1"=="" (
     call :restart_app
@@ -18,6 +18,8 @@ if "%1"=="" (
     call :test_app
 ) else if "%1"=="test-tabbed" (
     call :test_tabbed_app
+) else if "%1"=="test-bysection" (
+    call :test_bysection_app
 ) else (
     goto :usage
 )
@@ -64,20 +66,27 @@ goto :end
 
 :test_tabbed_app
     echo === Testing tabbed version locally ===
-    echo Starting Python app_tabbed.py...
-    python app_tabbed.py
+    echo Starting Python app_bytab.py...
+    python app_bytab.py
+    goto :eof
+
+:test_bysection_app
+    echo === Testing collapsible sections version locally ===
+    echo Starting Python app-bysection.py...
+    python app-bysection.py
     goto :eof
 
 :usage
-    echo Usage: %~nx0 {stop^|build^|run^|restart^|test^|test-tabbed}
+    echo Usage: %~nx0 {stop^|build^|run^|restart^|test^|test-tabbed^|test-bysection}
     echo.
     echo Commands:
-    echo   stop        - Stop all running containers
-    echo   build       - Build the Docker image
-    echo   run         - Stop any running containers, build, and then run the application (full deployment)
-    echo   restart     - Restart the application without rebuilding (default if no command is specified)
-    echo   test        - Run the standard app locally without Docker (python app.py)
-    echo   test-tabbed - Run the tabbed app locally without Docker (python app_tabbed.py)
+    echo   stop          - Stop all running containers
+    echo   build         - Build the Docker image
+    echo   run           - Stop any running containers, build, and then run the application (full deployment)
+    echo   restart       - Restart the application without rebuilding (default if no command is specified)
+    echo   test          - Run the standard app locally without Docker (python app.py)
+    echo   test-tabbed   - Run the tabbed app locally without Docker (python app_bytab.py)
+    echo   test-bysection - Run the collapsible sections app locally without Docker (python app-bysection.py)
     goto :eof
 
 :end

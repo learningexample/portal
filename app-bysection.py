@@ -1,9 +1,9 @@
 import dash
-from dash import dcc, html
+from dash import dcc, html, Input, Output, State, ClientsideFunction, callback_context, ALL
 import dash_bootstrap_components as dbc
-from dash.dependencies import Input, Output
 import yaml
 import os
+import json
 
 # Load configuration from YAML file
 def load_config():
@@ -35,12 +35,12 @@ app = dash.Dash(__name__,
                 ],
                 title=app_title,
                 update_title=f"Loading {app_title}...",
-                url_base_pathname="/portal-1/")
+                url_base_pathname="/portal-3/")
 
 # Add favicon - explicitly set to override Dash default
 app._favicon = None  # Disable default Dash favicon
 
-# Add our own favicon to the index template
+# Add our own favicon and localStorage script to the index template
 index_string = '''
 <!DOCTYPE html>
 <html>
@@ -63,7 +63,6 @@ index_string = '''
 '''
 
 app.index_string = index_string
-
 server = app.server  # for deployment purposes
 
 # Get departments from config
@@ -244,70 +243,105 @@ navbar = dbc.Navbar(
     sticky="top",
 )
 
-# Section headers with colorful icons
-def create_section_header(title, icon, id_name, dept=None):
-    # Set icon color based on department
-    icon_color = icon_colors.get(dept, company_info.get('theme_color', '#4a6fa5'))
+# Create section header with toggle button
+def create_section_header(title, icon, section_id, color, description=None):
+    header_elements = [
+        html.I(className=f"{icon} me-2", style={"color": color}),
+        html.H2(title, className="d-inline m-0"),
+        html.I(
+            id={"type": "section-chevron", "index": section_id},
+            className="fas fa-chevron-down ms-2",
+            style={"transition": "transform 0.3s"}
+        )
+    ]
     
-    return html.H2([
-        html.I(className=f"{icon} me-2", style={"color": icon_color}),
-        title
-    ], id=id_name, className="mt-4 mb-3")
+    header = html.Div(
+        header_elements,
+        id={"type": "section-header", "index": section_id},
+        className="d-flex align-items-center mt-4 mb-2",
+        style={"cursor": "pointer"}
+    )
+    
+    # Container for header and description
+    return html.Div([
+        header,
+        # Show description if provided
+        html.P(description, className="lead mb-3") if description else None
+    ])
 
-# Main content layout - App Store first as a non-section element, then Shared apps, then department apps
+# Create a regular section header without collapse functionality
+def create_regular_header(title, icon, color):
+    if title == app_store_title:  # Special styling for AI App Store
+        return html.Div([
+            html.Div([
+                html.I(className=f"{icon} me-3", style={"color": color, "fontSize": "2.2rem"}),
+                html.H1(title, className="d-inline m-0", 
+                       style={"fontWeight": "700", "color": "#1565C0", "letterSpacing": "0.5px"})
+            ], className="d-flex align-items-center mt-4 mb-3"),
+        ])
+    else:  # Regular styling for other headers
+        return html.Div([
+            html.Div([
+                html.I(className=f"{icon} me-2", style={"color": color}),
+                html.H2(title, className="d-inline m-0")
+            ], className="d-flex align-items-center mt-4 mb-2"),
+        ])
+
+# Definition of all section IDs for reference - Removing app-store since it's not collapsible
+section_ids = ["shared"] + [dept.lower().replace(' ', '-') for dept in departments]
+
+# Main content layout with collapsible sections
 content = html.Div(
     [
-        # AI App Store section (first, but not as a section)
+        # Store to persist section states
+        dcc.Store(id="section-states", storage_type="local"),
+        
+        # App Store section (not collapsible)
         html.Div([
+            create_regular_header(app_store_title, app_store_icon, icon_colors.get("App Store")),
             # Banner image
             html.Img(src=app_store.get('banner_image', 'assets/images/app-store-banner.svg'), 
                     className="img-fluid mb-3 rounded",
                     alt="AI App Store Banner",
                     style={"maxWidth": "100%"}),
-            
-            # Title with enhanced styling
-            html.Div([
-                html.I(className=f"{app_store_icon} me-3", style={"color": icon_colors.get("App Store"), "fontSize": "2.2rem"}),
-                html.H1(app_store_title, className="d-inline m-0", 
-                      style={"fontWeight": "700", "color": "#1565C0", "letterSpacing": "0.5px"})
-            ], className="d-flex align-items-center mb-3"),
-            
-            # Description and cards
-            html.Div([
-                html.P(app_store_description, className="lead mb-4"),
-                dbc.Row([
-                    dbc.Col(card, md=4) for card in create_app_cards('App Store')
-                ], className="g-4")
-            ])
+            html.P(app_store_description, className="lead mb-3"),
+            dbc.Row([
+                dbc.Col(card, md=4) for card in create_app_cards('App Store')
+            ], className="g-4")
         ], className="mb-5"),
         
-        # Shared apps section (second)
+        # Shared apps section
         html.Div([
-            create_section_header(shared_title, shared_icon, "shared", "Shared"),
-            html.P(shared_description, className="lead mb-4"),
-            dbc.Row([
-                dbc.Col(card, md=4) for card in create_app_cards('Shared')
-            ], className="g-4")
-        ], className="mb-5")
+            create_section_header(shared_title, shared_icon, "shared", icon_colors.get("Shared"), shared_description),
+            dbc.Collapse(
+                dbc.Row([
+                    dbc.Col(card, md=4) for card in create_app_cards('Shared')
+                ], className="g-4"),
+                id={"type": "section-collapse", "index": "shared"},
+                is_open=True,  # Initial state - will be overridden by the callback
+            )
+        ], className="mb-5"),
     ] + [
-        # Department apps sections (after shared)
+        # Department sections
         html.Div([
             create_section_header(
                 f"{dept} AI Applications",
                 next((d.get('icon', 'fa-solid fa-folder') for d in config.get('departments', []) if d['name'] == dept), 'fa-solid fa-folder'),
-                f"{dept.lower()}",
-                dept
+                dept.lower().replace(' ', '-'),
+                icon_colors.get(dept, '#4a6fa5'),
+                dept_descriptions.get(dept, "")
             ),
-            html.P(dept_descriptions.get(dept, ""), className="lead mb-4"),
-            dbc.Row([
-                dbc.Col(card, md=4) for card in create_app_cards(dept)
-            ], className="g-4")
+            dbc.Collapse(
+                dbc.Row([
+                    dbc.Col(card, md=4) for card in create_app_cards(dept)
+                ], className="g-4"),
+                id={"type": "section-collapse", "index": dept.lower().replace(' ', '-')},
+                is_open=False,  # Initial state - will be overridden by the callback
+            )
         ], className="mb-5") for dept in departments
     ],
     className="container",
-    style={
-        "padding": "1rem",
-    },
+    style={"padding": "1rem"},
 )
 
 # Footer with company information
@@ -350,12 +384,81 @@ app.layout = html.Div([
 @app.callback(
     Output("navbar-collapse", "is_open"),
     [Input("navbar-toggler", "n_clicks")],
-    [dash.dependencies.State("navbar-collapse", "is_open")],
+    [State("navbar-collapse", "is_open")],
 )
 def toggle_navbar_collapse(n, is_open):
     if n:
         return not is_open
     return is_open
+
+# Initialize section states from localStorage or defaults
+@app.callback(
+    Output("section-states", "data"),
+    Input("url", "pathname"),
+    State("section-states", "data"),
+)
+def initialize_states(pathname, current_states):
+    # If we have stored states, use them
+    if current_states:
+        return current_states
+    
+    # Otherwise create default states (only shared section is open)
+    default_states = {section_id: section_id == "shared" for section_id in section_ids}
+    return default_states
+
+# Apply states from the store to all sections
+@app.callback(
+    [Output({"type": "section-collapse", "index": ALL}, "is_open"),
+     Output({"type": "section-chevron", "index": ALL}, "style")],
+    Input("section-states", "data"),
+)
+def apply_states_to_sections(states):
+    if not states:
+        # Default - only Shared section open
+        is_open_list = [section_id == "shared" for section_id in section_ids]
+    else:
+        # Get values from stored states
+        is_open_list = [states.get(section_id, section_id == "shared") for section_id in section_ids]
+    
+    # Create styles for chevrons based on open/closed state
+    styles = [{
+        "transition": "transform 0.3s",
+        "transform": "rotate(0deg)" if is_open else "rotate(-90deg)"
+    } for is_open in is_open_list]
+    
+    return is_open_list, styles
+
+# Toggle section when header is clicked
+@app.callback(
+    Output("section-states", "data", allow_duplicate=True),
+    Input({"type": "section-header", "index": ALL}, "n_clicks"),
+    State({"type": "section-collapse", "index": ALL}, "is_open"),
+    State("section-states", "data"),
+    prevent_initial_call=True
+)
+def toggle_section(n_clicks_list, is_open_list, current_states):
+    # Find which section was clicked
+    ctx = callback_context
+    if not ctx.triggered:
+        return current_states  # No change
+    
+    # Get the ID of the clicked section
+    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    clicked_section = json.loads(trigger_id)["index"]
+    
+    # Find the position of this section in our list
+    try:
+        section_idx = section_ids.index(clicked_section)
+    except ValueError:
+        return current_states  # Can't find it, no change
+    
+    # Update the states dictionary with new toggle state
+    if not current_states:
+        current_states = {section_id: section_id == "shared" for section_id in section_ids}
+    
+    current_states[clicked_section] = not is_open_list[section_idx]
+    
+    return current_states
 
 if __name__ == '__main__':
     # Get port from environment variable or default to 8050

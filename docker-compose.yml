@@ -12,6 +12,7 @@ services:
     depends_on:
       - ai-portal
       - ai-portal-tabbed
+      - ai-portal-bysection
     restart: unless-stopped
     # Enable necessary Apache modules and include our configuration
     command: sh -c "sed -i '/LoadModule proxy_module/s/^#//g' /usr/local/apache2/conf/httpd.conf &&
@@ -43,4 +44,16 @@ services:
     environment:
       - PORT=8050
       - PORTAL_VERSION=tabbed
+    restart: unless-stopped
+
+  ai-portal-bysection:
+    build: .
+    container_name: ai-portal-bysection
+    expose:
+      - "8050"
+    volumes:
+      - ./config.yaml:/app/config.yaml
+    environment:
+      - PORT=8050
+      - PORTAL_VERSION=bysection
     restart: unless-stopped

@@ -20,12 +20,14 @@ user:
 app_store:
   title: "AI App Store"
   icon: "fa-solid fa-store"
-  description: "The Enterprise AI App Store serves as a centralized marketplace for discovering, evaluating, and deploying cutting-edge artificial intelligence solutions across your organization. This comprehensive platform streamlines the process of AI adoption by providing a curated collection of pre-vetted applications designed to address specific business challenges. Each application undergoes rigorous security testing and performance evaluation to ensure enterprise-grade reliability and seamless integration with existing systems. Users can browse applications by category, functionality, or department relevance, with detailed metrics on implementation success rates and ROI potential. The platform also features a recommendation engine that suggests applications based on your organizational profile, usage patterns, and strategic objectives. Regular updates introduce new capabilities and improvements based on user feedback and emerging technologies, making the AI App Store an essential resource for maintaining competitive advantage through intelligent automation."
+  description: "Your one-stop marketplace for enterprise AI solutions. Discover, deploy, and manage pre-vetted AI applications tailored for your business needs. Each app is security-tested and optimized for seamless integration with your existing systems."
+  banner_image: "assets/images/app-store-banner.svg"
 
 # Departments configuration
 departments:
   - name: "Finance"
     icon: "fa-solid fa-chart-line"
+    description: "Financial AI tools that optimize budgeting, forecasting, and expense tracking to maximize fiscal efficiency and minimize risk."
     apps:
       - name: "Financial Forecasting"
         url: "/finance/forecast"
@@ -42,6 +44,7 @@ departments:
   
   - name: "Marketing"
     icon: "fa-solid fa-bullhorn"
+    description: "Marketing tools powered by AI to enhance customer targeting, campaign performance, and brand sentiment analysis."
     apps:
       - name: "Customer Segmentation"
         url: "/marketing/segments"
@@ -58,6 +61,7 @@ departments:
   
   - name: "Operations"
     icon: "fa-solid fa-cogs"
+    description: "Operations-focused AI applications that streamline supply chains, enhance quality control, and optimize resource allocation."
     apps:
       - name: "Supply Chain Prediction"
         url: "/operations/supply"
@@ -74,6 +78,7 @@ departments:
   
   - name: "HR"
     icon: "fa-solid fa-user-group"
+    description: "Human resources tools leveraging AI to improve recruitment, retention, and performance management processes."
     apps:
       - name: "Resume Screening"
         url: "/hr/resumes"
@@ -90,6 +95,7 @@ departments:
   
   - name: "IT"
     icon: "fa-solid fa-laptop-code"
+    description: "IT management solutions using AI to predict incidents, improve code quality, and enhance network security."
     apps:
       - name: "Incident Prediction"
         url: "/it/incidents"
@@ -108,6 +114,7 @@ departments:
 shared:
   title: "Shared Apps"
   icon: "fa-solid fa-share-nodes"
+  description: "Cross-departmental AI tools accessible to all employees for common business needs and productivity enhancement."
   apps:
     - name: "Text Analyzer"
       url: "/store/text-analyzer"
