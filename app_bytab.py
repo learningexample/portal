@@ -1,3 +1,18 @@
+"""
+Enterprise AI Portal - Tabbed Version (app_bytab.py)
+
+Tabbed interface version of the Enterprise AI Portal, providing organized access
+to departmental AI applications through a tab-based navigation system.
+
+COPILOT INSTRUCTIONS:
+- This is the tabbed portal version with tab-based navigation
+- Uses Flask server exposed as 'server' for Gunicorn integration
+- WebSocket connections are handled by Apache reverse proxy
+- Contains additional debug logging compared to other versions
+- Default path is /portal-2/
+- Prefers f-strings over other string formatting
+"""
+
 # Add more comprehensive debug logging
 import sys
 import traceback

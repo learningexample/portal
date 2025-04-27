@@ -1,3 +1,18 @@
+"""
+Enterprise AI Portal - Collapsible Section Version (app-bysection.py)
+
+Section-based version of the Enterprise AI Portal with collapsible sections
+for each department, providing an organized way to access AI applications.
+
+COPILOT INSTRUCTIONS:
+- This is the collapsible sections portal version
+- Uses Flask server exposed as 'server' for Gunicorn integration
+- WebSocket connections are handled by Apache reverse proxy
+- Uses clientside callbacks for persistent section states with localStorage
+- Default path is /portal-3/
+- Implements more complex UI interaction than other versions
+"""
+
 import dash
 from dash import dcc, html, Input, Output, State, ClientsideFunction, callback_context, ALL
 import dash_bootstrap_components as dbc
@@ -399,7 +414,7 @@ def toggle_navbar_collapse(n, is_open):
 )
 def initialize_states(pathname, current_states):
     # If we have stored states, use them
-    if current_states:
+    if (current_states):
         return current_states
     
     # Otherwise create default states (only shared section is open)

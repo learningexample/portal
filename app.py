@@ -1,3 +1,17 @@
+"""
+Enterprise AI Portal - Original Version (app.py)
+
+Main application entry point for the Enterprise AI Portal, providing a scrolling 
+sections-based interface with department-specific AI applications.
+
+COPILOT INSTRUCTIONS:
+- This is the original portal version with scrolling sections design
+- Uses Flask server exposed as 'server' for Gunicorn integration
+- WebSocket connections are handled by Apache reverse proxy
+- Not for direct internet exposure - always behind reverse proxy
+- Default path is /portal-1/
+"""
+
 import dash
 from dash import dcc, html
 import dash_bootstrap_components as dbc

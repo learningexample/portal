@@ -1,0 +1,10 @@
+# Files to be ignored by GitHub Copilot
+__pycache__/
+*.pyc
+.env
+venv/
+.git/
+.idea/
+.vscode/
+*.bak
+node_modules/

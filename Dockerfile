@@ -13,8 +13,28 @@ COPY . .
 ENV PORT=8050
 ENV PYTHONUNBUFFERED=1
 
-# Create start script that can run all portal versions
-RUN echo '#!/bin/bash\nif [ "$PORTAL_VERSION" = "tabbed" ]; then\n  python app_bytab.py\nelif [ "$PORTAL_VERSION" = "bysection" ]; then\n  python app-bysection.py\nelse\n  python app.py\nfi' > /app/start.sh \
+# Create start script that uses Gunicorn for better performance
+RUN echo '#!/bin/bash\n\
+# Calculate optimal number of workers based on CPU cores\n\
+CORES=$(nproc)\n\
+WORKERS=$(($CORES * 2 + 1))\n\
+\n\
+if [ "$PORTAL_VERSION" = "tabbed" ]; then\n\
+  APP_MODULE="app_bytab:server"\n\
+elif [ "$PORTAL_VERSION" = "bysection" ]; then\n\
+  APP_MODULE="app-bysection:server"\n\
+else\n\
+  APP_MODULE="app:server"\n\
+fi\n\
+\n\
+echo "Starting Gunicorn with $WORKERS workers for $APP_MODULE"\n\
+exec gunicorn --workers=$WORKERS --threads=2 \\\n\
+    --bind=0.0.0.0:$PORT \\\n\
+    --forwarded-allow-ips="*" \\\n\
+    --log-level=info \\\n\
+    --access-logfile=- \\\n\
+    --error-logfile=- \\\n\
+    $APP_MODULE\n' > /app/start.sh \
     && chmod +x /app/start.sh
 
 # Expose the port the app runs on
