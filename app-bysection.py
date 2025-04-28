@@ -80,7 +80,7 @@ app = dash.Dash(__name__,
                 ],
                 title=app_title,
                 update_title=f"Loading {app_title}...",
-                url_base_pathname="/portal-3",
+                url_base_pathname="/portal-3/",  # Add trailing slash back
                 suppress_callback_exceptions=True)  # Add this to suppress callback exceptions
 
 # Add favicon - explicitly set to override Dash default

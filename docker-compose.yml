@@ -3,7 +3,7 @@ services:
     image: httpd:2.4
     container_name: portal-apache
     ports:
-      - "8050:80"
+      - "0.0.0.0:8050:80"  # Bind to all network interfaces, not just localhost
     volumes:
       - ./apache/portal.conf:/usr/local/apache2/conf/extra/portal.conf
       - ./assets:/var/www/html/assets
@@ -12,6 +12,8 @@ services:
       - ai-portal-tabbed
       - ai-portal-bysection
       - ai-portal-appstore
+    networks:
+      - portal-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "apachectl", "-t"]
@@ -43,6 +45,8 @@ services:
       - ./config.yaml:/app/config.yaml:ro
     environment:
       - PORT=8050
+    networks:
+      - portal-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "--silent", "--fail", "http://localhost:8050/_dash-layout"]
@@ -66,6 +70,8 @@ services:
     environment:
       - PORT=8050
       - PORTAL_VERSION=tabbed
+    networks:
+      - portal-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "--silent", "--fail", "http://localhost:8050/_dash-layout"]
@@ -89,6 +95,8 @@ services:
     environment:
       - PORT=8050
       - PORTAL_VERSION=bysection
+    networks:
+      - portal-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "--silent", "--fail", "http://localhost:8050/_dash-layout"]
@@ -112,6 +120,8 @@ services:
     environment:
       - PORT=8050
       - PORTAL_VERSION=appstore
+    networks:
+      - portal-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "--silent", "--fail", "http://localhost:8050/_dash-layout"]
@@ -124,3 +134,7 @@ services:
         limits:
           cpus: '1.0'
           memory: 512M
+
+networks:
+  portal-network:
+    driver: bridge

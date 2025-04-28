@@ -4,12 +4,14 @@ services:
     image: httpd:2.4
     container_name: portal-apache-test
     ports:
-      - "8051:80"  # Different port to avoid conflicts with production
+      - "0.0.0.0:8051:80"  # Bind to all network interfaces, not just localhost
     volumes:
       - ./apache/portal.conf:/usr/local/apache2/conf/extra/portal.conf
       - ./assets:/var/www/html/assets
     depends_on:
       - ai-portal-test
+    networks:
+      - portal-test-network
     restart: "no"  # Don't restart automatically in test mode
     deploy:
       resources:
@@ -34,6 +36,8 @@ services:
     container_name: ai-portal-test
     expose:
       - "8050"
+    networks:
+      - portal-test-network
     volumes:
       - ./config.yaml:/app/config.yaml:ro
       # Mount selective files and directories to avoid conflicts
@@ -66,3 +70,8 @@ services:
       timeout: 3s
       retries: 2
       start_period: 3s
+
+# Define test network
+networks:
+  portal-test-network:
+    driver: bridge

@@ -75,7 +75,7 @@ try:
                     ],
                     title=app_title,
                     update_title=f"Loading {app_title}...",
-                    url_base_pathname="/portal-2",
+                    url_base_pathname="/portal-2/",  # Add trailing slash back
                     suppress_callback_exceptions=True)
 
     # Add favicon
