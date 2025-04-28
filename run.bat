@@ -35,34 +35,57 @@ goto :end
 :stop_app
     echo Stopping any running AI Portal containers...
     docker-compose down
-    echo All containers stopped.
+    if %ERRORLEVEL% NEQ 0 (
+        echo Error: Failed to stop containers. Is Docker running?
+    ) else (
+        echo All containers stopped.
+    )
     goto :eof
 
 :build_app
     echo Building AI Portal Docker image...
     docker-compose build --no-cache
-    echo Build completed.
+    if %ERRORLEVEL% NEQ 0 (
+        echo Error: Failed to build image. Check the Docker build logs.
+    ) else (
+        echo Build completed.
+    )
     goto :eof
 
 :run_app
     echo Starting AI Portal...
     docker-compose up -d
-    echo AI Portal is running at http://localhost:8050
+    if %ERRORLEVEL% NEQ 0 (
+        echo Error: Failed to start containers. Check docker-compose logs.
+    ) else (
+        echo AI Portal is running at http://localhost:8050
+    )
     goto :eof
 
 :restart_app
     echo Restarting AI Portal...
     docker-compose restart
-    echo AI Portal has been restarted and is available at http://localhost:8050
+    if %ERRORLEVEL% NEQ 0 (
+        echo Error: Failed to restart containers. Is Docker running?
+    ) else (
+        echo AI Portal has been restarted and is available at http://localhost:8050
+    )
     goto :eof
 
 :status_app
     echo === AI Portal Status ===
     echo Running containers:
     docker-compose ps
+    if %ERRORLEVEL% NEQ 0 (
+        echo Error: Docker-compose failed. Is Docker running?
+        goto :eof
+    )
     echo.
     echo Current connections to Apache:
-    docker exec portal-apache cmd /c "apachectl status | findstr "requests currently""
+    docker exec portal-apache bash -c "apachectl status | grep 'requests currently'" 2>nul
+    if %ERRORLEVEL% NEQ 0 (
+        echo Unable to get Apache status. Is the container running?
+    )
     echo.
     echo Container resource usage:
     docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}"
@@ -109,7 +132,12 @@ goto :end
 :test_bysection_app
     echo === Testing collapsible sections version locally with Gunicorn ===
     echo Starting Gunicorn with app-bysection.py...
-    gunicorn --workers=4 --threads=2 --bind=0.0.0.0:8050 "app-bysection:server"
+    gunicorn --workers=4 --threads=2 --bind=0.0.0.0:8050 app-bysection:server
+    if %ERRORLEVEL% NEQ 0 (
+        echo Error: Failed to start app-bysection with Gunicorn.
+        echo Trying alternative syntax...
+        python -m gunicorn --workers=4 --threads=2 --bind=0.0.0.0:8050 app-bysection:server
+    )
     goto :eof
 
 :test_appstore_app
