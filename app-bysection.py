@@ -19,6 +19,7 @@ import dash_bootstrap_components as dbc
 import yaml
 import os
 import json
+import sys
 
 # Load configuration from YAML file
 def load_config():
@@ -26,14 +27,43 @@ def load_config():
     try:
         with open(config_path, 'r') as file:
             config = yaml.safe_load(file)
+            
+        # Validate essential configuration sections
+        required_sections = ['company', 'departments', 'shared']
+        missing_sections = [section for section in required_sections if section not in config]
+        
+        if missing_sections:
+            print(f"Warning: Missing required sections in config.yaml: {', '.join(missing_sections)}")
+            print("Using default values for missing sections.")
+            
+            # Add default values for missing sections
+            if 'company' not in config:
+                config['company'] = {'name': 'Enterprise', 'logo_url': 'assets/images/logo.svg', 'theme_color': '#4a6fa5'}
+            if 'departments' not in config:
+                config['departments'] = []
+            if 'shared' not in config:
+                config['shared'] = {'apps': [], 'title': 'Shared Apps', 'icon': 'fa-solid fa-share-nodes'}
+                
         return config
+    except FileNotFoundError:
+        print(f"Error: Configuration file not found at {config_path}")
+        print("Using default configuration.")
+        return {
+            'company': {'name': 'Enterprise', 'logo_url': 'assets/images/logo.svg', 'theme_color': '#4a6fa5'},
+            'departments': [],
+            'shared': {'apps': [], 'title': 'Shared Apps', 'icon': 'fa-solid fa-share-nodes'}
+        }
+    except yaml.YAMLError as e:
+        print(f"Error parsing YAML configuration: {e}")
+        sys.exit(1)  # Exit if YAML is malformed - critical error
     except Exception as e:
-        print(f"Error loading configuration: {e}")
+        print(f"Unexpected error loading configuration: {e}")
         return {}
 
+# Load and validate configuration
 config = load_config()
 
-# Company and user information
+# Company and user information with fallbacks to ensure UI won't break
 company_info = config.get('company', {})
 user_info = config.get('user', {})
 
@@ -46,11 +76,12 @@ app = dash.Dash(__name__,
                 ],
                 meta_tags=[
                     {'name': 'viewport', 'content': 'width=device-width, initial-scale=1.0'},
-                    {'name': 'description', 'content': 'Enterprise AI Portal for accessing departmental AI applications'}
+                    {'name': 'description', 'content': f"{company_info.get('name', 'Enterprise')} AI Portal for accessing departmental AI applications"}
                 ],
                 title=app_title,
                 update_title=f"Loading {app_title}...",
-                url_base_pathname="/portal-3/")
+                url_base_pathname="/portal-3",
+                suppress_callback_exceptions=True)  # Add this to suppress callback exceptions
 
 # Add favicon - explicitly set to override Dash default
 app._favicon = None  # Disable default Dash favicon
@@ -260,21 +291,45 @@ navbar = dbc.Navbar(
 
 # Create section header with toggle button
 def create_section_header(title, icon, section_id, color, description=None):
-    header_elements = [
-        html.I(className=f"{icon} me-2", style={"color": color}),
-        html.H2(title, className="d-inline m-0"),
-        html.I(
-            id={"type": "section-chevron", "index": section_id},
-            className="fas fa-chevron-down ms-2",
-            style={"transition": "transform 0.3s"}
-        )
-    ]
+    # Create a unique HTML ID for the section itself to help with debugging
+    html_id = f"{section_id}"
     
+    # Create a chevron with clear styling
+    chevron = html.I(
+        id={"type": "section-chevron", "index": section_id},
+        className="fas fa-chevron-down ms-3",
+        style={
+            "transition": "transform 0.3s, background-color 0.2s",
+            "fontSize": "1.8rem",
+            "color": "white",
+            "backgroundColor": color,
+            "borderRadius": "50%",
+            "width": "36px",
+            "height": "36px",
+            "display": "flex",
+            "alignItems": "center",
+            "justifyContent": "center",
+            "boxShadow": "0 2px 4px rgba(0,0,0,0.15)",
+            "padding": "6px"
+        }
+    )
+    
+    # Make the entire header clickable with a clear ID pattern
     header = html.Div(
-        header_elements,
+        [
+            html.I(className=f"{icon} fa-2x me-3", style={"color": color}),
+            html.H2(title, className="d-inline m-0", id=f"{section_id}-title"),
+            chevron
+        ],
         id={"type": "section-header", "index": section_id},
-        className="d-flex align-items-center mt-4 mb-2",
-        style={"cursor": "pointer"}
+        className="d-flex align-items-center mt-4 mb-2 section-header",
+        style={
+            "cursor": "pointer", 
+            "userSelect": "none",  # Prevent text selection on click
+            "transition": "background-color 0.2s",
+            "borderRadius": "4px",
+            "padding": "8px"
+        }
     )
     
     # Container for header and description
@@ -282,14 +337,14 @@ def create_section_header(title, icon, section_id, color, description=None):
         header,
         # Show description if provided
         html.P(description, className="lead mb-3") if description else None
-    ])
+    ], id=html_id)  # Add the HTML ID to the outer container
 
 # Create a regular section header without collapse functionality
 def create_regular_header(title, icon, color):
     if title == app_store_title:  # Special styling for AI App Store
         return html.Div([
             html.Div([
-                html.I(className=f"{icon} me-3", style={"color": color, "fontSize": "2.2rem"}),
+                html.I(className=f"{icon} fa-3x me-3", style={"color": color}),  # Larger icon for app store
                 html.H1(title, className="d-inline m-0", 
                        style={"fontWeight": "700", "color": "#1565C0", "letterSpacing": "0.5px"})
             ], className="d-flex align-items-center mt-4 mb-3"),
@@ -297,10 +352,57 @@ def create_regular_header(title, icon, color):
     else:  # Regular styling for other headers
         return html.Div([
             html.Div([
-                html.I(className=f"{icon} me-2", style={"color": color}),
+                html.I(className=f"{icon} fa-2x me-3", style={"color": color}),  # Increased to fa-2x
                 html.H2(title, className="d-inline m-0")
             ], className="d-flex align-items-center mt-4 mb-2"),
         ])
+
+# Create quick navigation links
+def create_quick_nav_links():
+    # Add shared section link
+    links = [
+        html.A([
+            html.Span([
+                html.I(className=f"{shared_icon} me-1"),
+                shared_title
+            ])
+        ], 
+        id="nav-shared-link",
+        className="badge bg-light me-2 mb-2 p-2 text-decoration-none", 
+        style={
+            "color": icon_colors.get("Shared"), 
+            "borderColor": icon_colors.get("Shared"), 
+            "borderWidth": "1px", 
+            "borderStyle": "solid",
+            "cursor": "pointer"
+        })
+    ]
+    
+    # Add department section links
+    for i, dept in enumerate(departments):
+        dept_icon = config.get('departments', [])[i].get('icon', 'fa-solid fa-folder')
+        dept_color = icon_colors.get(dept, company_info.get('theme_color', '#4a6fa5'))
+        dept_id = dept.lower().replace(' ', '-')
+        
+        links.append(
+            html.A([
+                html.Span([
+                    html.I(className=f"{dept_icon} me-1"),
+                    dept
+                ])
+            ], 
+            id=f"nav-{dept_id}-link",
+            className="badge bg-light me-2 mb-2 p-2 text-decoration-none", 
+            style={
+                "color": dept_color, 
+                "borderColor": dept_color, 
+                "borderWidth": "1px", 
+                "borderStyle": "solid",
+                "cursor": "pointer"
+            })
+        )
+    
+    return links
 
 # Definition of all section IDs for reference - Removing app-store since it's not collapsible
 section_ids = ["shared"] + [dept.lower().replace(' ', '-') for dept in departments]
@@ -320,18 +422,28 @@ content = html.Div(
                     alt="AI App Store Banner",
                     style={"maxWidth": "100%"}),
             html.P(app_store_description, className="lead mb-3"),
+            
             dbc.Row([
                 dbc.Col(card, md=4) for card in create_app_cards('App Store')
-            ], className="g-4")
+            ], className="g-4"),
+            # Section separator - without icon
+            html.Div([
+                html.Hr(style={"borderTop": f"4px solid {icon_colors.get('App Store', '#1565C0')}", "opacity": "0.8", "borderRadius": "2px"})
+            ], className="text-center mt-5 mb-3")
         ], className="mb-5"),
         
         # Shared apps section
         html.Div([
             create_section_header(shared_title, shared_icon, "shared", icon_colors.get("Shared"), shared_description),
-            dbc.Collapse(
+            dbc.Collapse([
                 dbc.Row([
                     dbc.Col(card, md=4) for card in create_app_cards('Shared')
                 ], className="g-4"),
+                # Section separator - without icon
+                html.Div([
+                    html.Hr(style={"borderTop": f"4px solid {icon_colors.get('Shared', '#00695C')}", "opacity": "0.8", "borderRadius": "2px"})
+                ], className="text-center mt-5 mb-3")
+            ],
                 id={"type": "section-collapse", "index": "shared"},
                 is_open=True,  # Initial state - will be overridden by the callback
             )
@@ -346,10 +458,15 @@ content = html.Div(
                 icon_colors.get(dept, '#4a6fa5'),
                 dept_descriptions.get(dept, "")
             ),
-            dbc.Collapse(
+            dbc.Collapse([
                 dbc.Row([
                     dbc.Col(card, md=4) for card in create_app_cards(dept)
                 ], className="g-4"),
+                # Section separator - without icon, consistent with other sections
+                html.Div([
+                    html.Hr(style={"borderTop": f"4px solid {icon_colors.get(dept, '#4a6fa5')}", "opacity": "0.8", "borderRadius": "2px"})
+                ], className="text-center mt-5 mb-3")
+            ],
                 id={"type": "section-collapse", "index": dept.lower().replace(' ', '-')},
                 is_open=False,  # Initial state - will be overridden by the callback
             )
@@ -436,10 +553,34 @@ def apply_states_to_sections(states):
         is_open_list = [states.get(section_id, section_id == "shared") for section_id in section_ids]
     
     # Create styles for chevrons based on open/closed state
-    styles = [{
-        "transition": "transform 0.3s",
-        "transform": "rotate(0deg)" if is_open else "rotate(-90deg)"
-    } for is_open in is_open_list]
+    styles = []
+    for i, is_open in enumerate(is_open_list):
+        # Get the color for this section
+        section_id = section_ids[i]
+        if section_id == "shared":
+            color = icon_colors.get("Shared", "#00695C")
+        else:
+            # Find corresponding department name
+            dept_name = next((dept for dept in departments if dept.lower().replace(' ', '-') == section_id), None)
+            color = icon_colors.get(dept_name, company_info.get('theme_color', '#4a6fa5'))
+        
+        # Create style with transform based on state
+        styles.append({
+            "transition": "transform 0.3s, background-color 0.2s",
+            "transform": "rotate(0deg)" if is_open else "rotate(-90deg)",
+            "fontSize": "1.8rem",
+            "color": "white",
+            "backgroundColor": color,
+            "borderRadius": "50%",
+            "width": "36px",
+            "height": "36px",
+            "display": "flex",
+            "alignItems": "center",
+            "justifyContent": "center",
+            "boxShadow": "0 2px 4px rgba(0,0,0,0.15)",
+            "padding": "6px",
+            "opacity": "1.0" if is_open else "0.85"  # Slightly dim when closed
+        })
     
     return is_open_list, styles
 
@@ -447,37 +588,132 @@ def apply_states_to_sections(states):
 @app.callback(
     Output("section-states", "data", allow_duplicate=True),
     Input({"type": "section-header", "index": ALL}, "n_clicks"),
-    State({"type": "section-collapse", "index": ALL}, "is_open"),
     State("section-states", "data"),
     prevent_initial_call=True
 )
-def toggle_section(n_clicks_list, is_open_list, current_states):
-    # Find which section was clicked
+def toggle_section(n_clicks_list, current_states):
     ctx = callback_context
     if not ctx.triggered:
-        return current_states  # No change
+        return current_states
     
-    # Get the ID of the clicked section
-    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
-    clicked_section = json.loads(trigger_id)["index"]
+    # Get the triggered component's id
+    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
     
-    # Find the position of this section in our list
     try:
-        section_idx = section_ids.index(clicked_section)
-    except ValueError:
-        return current_states  # Can't find it, no change
+        # Extract the section ID from the trigger
+        trigger_data = json.loads(trigger_id)
+        section_id = trigger_data.get('index')
+        
+        print(f"Toggle clicked for section: {section_id}")
+        
+        # Make sure we have a valid states dictionary
+        if not current_states:
+            current_states = {section_id: section_id == "shared" for section_id in section_ids}
+        else:
+            # Create a new copy to avoid mutation issues
+            current_states = dict(current_states)
+        
+        # Toggle the specific section's state
+        current_states[section_id] = not current_states.get(section_id, False)
+        
+        print(f"New section states: {current_states}")
+        return current_states
+        
+    except Exception as e:
+        print(f"Error in toggle_section: {e}")
+        # Return the unchanged states if there's an error
+        return current_states
+
+# Shared section navigation
+@app.callback(
+    Output("url", "hash", allow_duplicate=True),
+    [Input("nav-shared-link", "n_clicks")],
+    prevent_initial_call=True
+)
+def navigate_to_shared(n_clicks):
+    if n_clicks:
+        return "shared"
+    return dash.no_update
+
+# Department navigation links - using a more robust approach
+for i, dept in enumerate(departments):
+    # Create a proper ID that's consistent with how the links are created in the layout
+    dept_id = dept.lower().replace(' ', '-')
     
-    # Update the states dictionary with new toggle state
-    if not current_states:
-        current_states = {section_id: section_id == "shared" for section_id in section_ids}
+    # Define a function that creates a closure with the specific department ID
+    def create_nav_callback(dept_id=dept_id):
+        @app.callback(
+            Output("url", "hash", allow_duplicate=True),
+            [Input(f"nav-{dept_id}-link", "n_clicks")],
+            prevent_initial_call=True
+        )
+        def navigate_to_department(n_clicks):
+            if n_clicks:
+                return dept_id
+            return dash.no_update
+        return navigate_to_department
     
-    current_states[clicked_section] = not is_open_list[section_idx]
-    
-    return current_states
+    # Create and register the callback for this specific department
+    navigate_callback = create_nav_callback()
+
+# Add client-side JavaScript for smooth scrolling and section auto-expand
+app.clientside_callback(
+    """
+    function(hash, sectionStates) {
+        if (hash) {
+            // Remove the leading # if present
+            const targetId = hash.startsWith('#') ? hash.substring(1) : hash;
+            console.log("Navigation to section:", targetId);
+            
+            // Make a copy of the current states
+            let updatedStates = {...sectionStates};
+            
+            // Auto-open the section if it matches one of our collapsible sections
+            if (updatedStates && targetId in updatedStates) {
+                console.log("Opening section:", targetId);
+                updatedStates[targetId] = true;
+                
+                // Find the element after a small delay to allow React to update the DOM
+                setTimeout(() => {
+                    const targetElement = document.getElementById(targetId);
+                    if (targetElement) {
+                        console.log("Scrolling to element:", targetId);
+                        targetElement.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    } else {
+                        console.log("Target element not found:", targetId);
+                    }
+                }, 200);
+                
+                return updatedStates;
+            }
+            
+            // Just scroll to the element if it's not a collapsible section
+            const targetElement = document.getElementById(targetId);
+            if (targetElement) {
+                console.log("Scrolling to non-section element:", targetId);
+                targetElement.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            } else {
+                console.log("Target element not found:", targetId);
+            }
+        }
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("section-states", "data", allow_duplicate=True),
+    [Input("url", "hash")],
+    [State("section-states", "data")],
+    prevent_initial_call=True
+)
 
 if __name__ == '__main__':
     # Get port from environment variable or default to 8050
     port = int(os.environ.get('PORT', 8050))
     
     # Run server, allow connections from any host for Docker
-    app.run_server(debug=False, host='0.0.0.0', port=port)
+    app.run(debug=True, host='0.0.0.0', port=port)

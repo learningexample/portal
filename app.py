@@ -49,7 +49,8 @@ app = dash.Dash(__name__,
                 ],
                 title=app_title,
                 update_title=f"Loading {app_title}...",
-                url_base_pathname="/portal-1/")
+                url_base_pathname="/portal-1",
+                suppress_callback_exceptions=True)
 
 # Add favicon - explicitly set to override Dash default
 app._favicon = None  # Disable default Dash favicon
@@ -264,9 +265,55 @@ def create_section_header(title, icon, id_name, dept=None):
     icon_color = icon_colors.get(dept, company_info.get('theme_color', '#4a6fa5'))
     
     return html.H2([
-        html.I(className=f"{icon} me-2", style={"color": icon_color}),
+        html.I(className=f"{icon} me-3", style={"color": icon_color, "fontSize": "1.8rem"}),  # Increased icon size and margin
         title
     ], id=id_name, className="mt-4 mb-3")
+
+# Create quick navigation links
+def create_quick_nav_links():
+    # Add shared section link
+    links = [
+        html.A([
+            html.Span([
+                html.I(className=f"{shared_icon} me-1"),
+                shared_title
+            ])
+        ], 
+        id="nav-shared-link",
+        className="badge bg-light me-2 mb-2 p-2 text-decoration-none", 
+        style={
+            "color": icon_colors.get("Shared"), 
+            "borderColor": icon_colors.get("Shared"), 
+            "borderWidth": "1px", 
+            "borderStyle": "solid",
+            "cursor": "pointer"
+        })
+    ]
+    
+    # Add department section links
+    for i, dept in enumerate(departments):
+        dept_icon = config.get('departments', [])[i].get('icon', 'fa-solid fa-folder')
+        dept_color = icon_colors.get(dept, company_info.get('theme_color', '#4a6fa5'))
+        
+        links.append(
+            html.A([
+                html.Span([
+                    html.I(className=f"{dept_icon} me-1"),
+                    dept
+                ])
+            ], 
+            id=f"nav-{dept.lower().replace(' ', '-')}-link",
+            className="badge bg-light me-2 mb-2 p-2 text-decoration-none", 
+            style={
+                "color": dept_color, 
+                "borderColor": dept_color, 
+                "borderWidth": "1px", 
+                "borderStyle": "solid",
+                "cursor": "pointer"
+            })
+        )
+    
+    return links
 
 # Main content layout - App Store first as a non-section element, then Shared apps, then department apps
 content = html.Div(
@@ -288,7 +335,8 @@ content = html.Div(
             
             # Description and cards
             html.Div([
-                html.P(app_store_description, className="lead mb-4"),
+                html.P(app_store_description, className="lead mb-3"),
+                
                 dbc.Row([
                     dbc.Col(card, md=4) for card in create_app_cards('App Store')
                 ], className="g-4")
@@ -371,9 +419,59 @@ def toggle_navbar_collapse(n, is_open):
         return not is_open
     return is_open
 
+# Create callbacks for each navigation link
+# Shared section navigation
+@app.callback(
+    Output("url", "hash"),
+    [Input("nav-shared-link", "n_clicks")],
+    prevent_initial_call=True
+)
+def navigate_to_shared(n_clicks):
+    if n_clicks:
+        return "shared"
+    return dash.no_update
+
+# Department navigation links
+for dept in departments:
+    # Create a dynamic callback for each department
+    @app.callback(
+        Output("url", "hash"),
+        [Input(f"nav-{dept.lower().replace(' ', '-')}-link", "n_clicks")],
+        prevent_initial_call=True
+    )
+    def navigate_to_department(n_clicks, dept_name=dept):
+        if n_clicks:
+            return dept_name.lower()
+        return dash.no_update
+
+# Add client-side JavaScript for smooth scrolling
+app.clientside_callback(
+    """
+    function(hash) {
+        if (hash) {
+            // Remove the leading # if present
+            const targetId = hash.startsWith('#') ? hash.substring(1) : hash;
+            const targetElement = document.getElementById(targetId);
+            
+            if (targetElement) {
+                // Smooth scroll to the element
+                targetElement.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        }
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("url", "search"),
+    [Input("url", "hash")],
+    prevent_initial_call=True
+)
+
 if __name__ == '__main__':
     # Get port from environment variable or default to 8050
     port = int(os.environ.get('PORT', 8050))
     
     # Run server, allow connections from any host for Docker
-    app.run_server(debug=False, host='0.0.0.0', port=port)
+    app.run(debug=False, host='0.0.0.0', port=port)

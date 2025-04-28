@@ -2,9 +2,10 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Install system dependencies
+# Minimal system dependencies for testing
 RUN apt-get update && apt-get install -y --no-install-recommends \
     procps \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
@@ -18,12 +19,13 @@ COPY . .
 ENV PORT=8050
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
+ENV TEST_MODE=true
 
-# Create start script that uses Gunicorn for better performance
+# Create start script with minimal workers for testing
 RUN echo '#!/bin/bash\n\
-# Calculate optimal number of workers based on CPU cores\n\
-CORES=$(nproc)\n\
-WORKERS=$(($CORES * 2 + 1))\n\
+# Use minimal workers for testing\n\
+WORKERS=1\n\
+THREADS=1\n\
 \n\
 if [ "$PORTAL_VERSION" = "tabbed" ]; then\n\
   APP_MODULE="app_bytab:server"\n\
@@ -35,28 +37,28 @@ else\n\
   APP_MODULE="app:server"\n\
 fi\n\
 \n\
-echo "Starting Gunicorn with $WORKERS workers for $APP_MODULE"\n\
-exec gunicorn --workers=$WORKERS --threads=2 \\\n\
+echo "Starting test server with $WORKERS worker for $APP_MODULE"\n\
+exec gunicorn --workers=$WORKERS --threads=$THREADS \\\n\
     --bind=0.0.0.0:$PORT \\\n\
     --forwarded-allow-ips="*" \\\n\
-    --log-level=info \\\n\
-    --timeout=120 \\\n\
+    --log-level=debug \\\n\
+    --timeout=60 \\\n\
     --access-logfile=- \\\n\
     --error-logfile=- \\\n\
-    --worker-tmp-dir=/dev/shm \\\n\
-    $APP_MODULE\n' > /app/start.sh \
-    && chmod +x /app/start.sh
+    --reload \\\n\
+    $APP_MODULE\n' > /app/start_test.sh \
+    && chmod +x /app/start_test.sh
 
-# Create healthcheck script
+# Create lightweight healthcheck script for testing
 RUN echo '#!/bin/bash\n\
 curl --silent --fail http://localhost:$PORT/_dash-layout || exit 1\n' > /app/healthcheck.sh \
     && chmod +x /app/healthcheck.sh
 
-# Set up healthcheck
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 CMD [ "/app/healthcheck.sh" ]
+# Set up healthcheck with faster interval for testing
+HEALTHCHECK --interval=10s --timeout=5s --start-period=5s --retries=2 CMD [ "/app/healthcheck.sh" ]
 
 # Expose the port the app runs on
 EXPOSE 8050
 
-# Command to run the application
-CMD ["/app/start.sh"]
+# Command to run the application in test mode
+CMD ["/app/start_test.sh"]

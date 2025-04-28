@@ -336,7 +336,52 @@ class PortalManager:
             
     def open_in_browser(self):
         """Open the application in a web browser"""
-        url = "http://localhost:8050/portal-2/"
+        # Add dropdown menu to select which portal version to open
+        portal_window = tk.Toplevel(self.root)
+        portal_window.title("Select Portal Version")
+        portal_window.geometry("300x200")
+        portal_window.resizable(False, False)
+        
+        # Center the window
+        portal_window.geometry("+%d+%d" % (
+            self.root.winfo_rootx() + 50,
+            self.root.winfo_rooty() + 50))
+        
+        # Add instructions
+        ttk.Label(portal_window, text="Select a portal version to open:").pack(pady=10)
+        
+        # Create radio buttons for selection
+        portal_var = tk.StringVar(value="portal-1")
+        
+        ttk.Radiobutton(portal_window, text="Original Portal", 
+                       variable=portal_var, value="portal-1").pack(anchor=tk.W, padx=20, pady=5)
+        ttk.Radiobutton(portal_window, text="Tabbed Portal", 
+                       variable=portal_var, value="portal-2").pack(anchor=tk.W, padx=20, pady=5)
+        ttk.Radiobutton(portal_window, text="Section Portal", 
+                       variable=portal_var, value="portal-3").pack(anchor=tk.W, padx=20, pady=5)
+        ttk.Radiobutton(portal_window, text="App Store Style", 
+                       variable=portal_var, value="portal-4").pack(anchor=tk.W, padx=20, pady=5)
+        
+        # Button frame
+        btn_frame = ttk.Frame(portal_window)
+        btn_frame.pack(pady=10)
+        
+        # Open button
+        open_btn = ttk.Button(btn_frame, text="Open", 
+                             command=lambda: self._open_selected_portal(portal_var.get(), portal_window))
+        open_btn.pack(side=tk.LEFT, padx=5)
+        
+        # Cancel button
+        cancel_btn = ttk.Button(btn_frame, text="Cancel", 
+                               command=portal_window.destroy)
+        cancel_btn.pack(side=tk.LEFT, padx=5)
+    
+    def _open_selected_portal(self, portal_path, window=None):
+        """Open the selected portal version"""
+        if window:
+            window.destroy()
+            
+        url = f"http://localhost:8050/{portal_path}/"
         try:
             webbrowser.open(url)
             self.update_status(f"Opening {url} in browser")
@@ -347,10 +392,62 @@ class PortalManager:
         """Launch a specific app by its URL path"""
         # If the portal is running
         if url_path.startswith('/'):
-            url = f"http://localhost:8050/portal-2{url_path}"
+            # Open a dialog to select which portal version to use
+            portal_window = tk.Toplevel(self.root)
+            portal_window.title("Select Portal Version")
+            portal_window.geometry("300x200")
+            portal_window.resizable(False, False)
+            
+            # Center the window
+            portal_window.geometry("+%d+%d" % (
+                self.root.winfo_rootx() + 50,
+                self.root.winfo_rooty() + 50))
+            
+            # Add instructions
+            ttk.Label(portal_window, text="Select a portal version:").pack(pady=10)
+            
+            # Create radio buttons for selection
+            portal_var = tk.StringVar(value="portal-1")
+            
+            ttk.Radiobutton(portal_window, text="Original Portal", 
+                           variable=portal_var, value="portal-1").pack(anchor=tk.W, padx=20, pady=5)
+            ttk.Radiobutton(portal_window, text="Tabbed Portal", 
+                           variable=portal_var, value="portal-2").pack(anchor=tk.W, padx=20, pady=5)
+            ttk.Radiobutton(portal_window, text="Section Portal", 
+                           variable=portal_var, value="portal-3").pack(anchor=tk.W, padx=20, pady=5)
+            ttk.Radiobutton(portal_window, text="App Store Style", 
+                           variable=portal_var, value="portal-4").pack(anchor=tk.W, padx=20, pady=5)
+            
+            # Button frame
+            btn_frame = ttk.Frame(portal_window)
+            btn_frame.pack(pady=10)
+            
+            # Open button
+            open_btn = ttk.Button(
+                btn_frame, 
+                text="Open", 
+                command=lambda: self._launch_app_in_portal(url_path, portal_var.get(), portal_window)
+            )
+            open_btn.pack(side=tk.LEFT, padx=5)
+            
+            # Cancel button
+            cancel_btn = ttk.Button(btn_frame, text="Cancel", 
+                                   command=portal_window.destroy)
+            cancel_btn.pack(side=tk.LEFT, padx=5)
         else:
             url = url_path
+            try:
+                webbrowser.open(url)
+                self.update_status(f"Opening {url} in browser")
+            except Exception as e:
+                self.update_status(f"Error opening app: {e}")
+    
+    def _launch_app_in_portal(self, url_path, portal_version, window=None):
+        """Launch an app in the selected portal version"""
+        if window:
+            window.destroy()
             
+        url = f"http://localhost:8050/{portal_version}{url_path}"
         try:
             webbrowser.open(url)
             self.update_status(f"Opening {url} in browser")

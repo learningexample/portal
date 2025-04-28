@@ -75,7 +75,8 @@ try:
                     ],
                     title=app_title,
                     update_title=f"Loading {app_title}...",
-                    url_base_pathname="/portal-2/")
+                    url_base_pathname="/portal-2",
+                    suppress_callback_exceptions=True)
 
     # Add favicon
     app._favicon = None  # Disable default Dash favicon
@@ -261,7 +262,7 @@ try:
     # Create shared content
     tab_contents["tab-shared"] = html.Div([
         html.H3([
-            html.I(className=f"{shared_icon} me-2", style={"color": icon_colors.get('Shared', theme_color)}),
+            html.I(className=f"{shared_icon} me-3", style={"color": icon_colors.get('Shared', theme_color), "fontSize": "1.6rem"}),  # Increased icon size and margin
             shared_title
         ]),
         html.P(shared_description, className="lead mb-3") if shared_description else None,
@@ -282,7 +283,7 @@ try:
         
         tab_contents[dept_id] = html.Div([
             html.H3([
-                html.I(className=f"{dept_icon} me-2", style={"color": icon_colors.get(dept, theme_color)}),
+                html.I(className=f"{dept_icon} me-3", style={"color": icon_colors.get(dept, theme_color), "fontSize": "1.6rem"}),  # Increased icon size and margin
                 f"{dept} AI Applications"
             ]),
             html.P(dept_description, className="lead mb-3") if dept_description else None,
@@ -293,12 +294,12 @@ try:
     # Create a simple tabs component
     tabs = html.Div([
         dbc.Tabs([
-            dbc.Tab(label=f"🔄 {shared_title}", tab_id="tab-shared", label_style={"color": icon_colors.get('Shared')}),
+            dbc.Tab(label=f"🔄 {shared_title}", tab_id="tab-shared", label_style={"color": icon_colors.get('Shared'), "fontSize": "1.1rem"}),  # Increased font size
             *[
                 dbc.Tab(
                     label=f"📂 {dept}", 
                     tab_id=f"tab-{dept.lower().replace(' ', '-')}", 
-                    label_style={"color": icon_colors.get(dept, theme_color)}
+                    label_style={"color": icon_colors.get(dept, theme_color), "fontSize": "1.1rem"}  # Increased font size
                 ) for dept in departments
             ]
         ], id="tabs", active_tab="tab-shared"),

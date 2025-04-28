@@ -1,5 +1,3 @@
-version: '3'
-
 services:
   apache:
     image: httpd:2.4
@@ -13,19 +11,28 @@ services:
       - ai-portal
       - ai-portal-tabbed
       - ai-portal-bysection
+      - ai-portal-appstore
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "apachectl", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
     deploy:
       resources:
         limits:
           cpus: '0.5'
           memory: 256M
-    # Enable necessary Apache modules and include our configuration
-    command: sh -c "sed -i '/LoadModule proxy_module/s/^#//g' /usr/local/apache2/conf/httpd.conf &&
-                    sed -i '/LoadModule proxy_http_module/s/^#//g' /usr/local/apache2/conf/httpd.conf &&
-                    sed -i '/LoadModule rewrite_module/s/^#//g' /usr/local/apache2/conf/httpd.conf &&
-                    echo 'LoadModule proxy_wstunnel_module modules/mod_proxy_wstunnel.so' >> /usr/local/apache2/conf/httpd.conf &&
-                    echo 'Include conf/extra/portal.conf' >> /usr/local/apache2/conf/httpd.conf &&
-                    httpd-foreground"
+    command: >
+      sh -c "
+        sed -i '/LoadModule proxy_module/s/^#//g' /usr/local/apache2/conf/httpd.conf;
+        sed -i '/LoadModule proxy_http_module/s/^#//g' /usr/local/apache2/conf/httpd.conf;
+        sed -i '/LoadModule rewrite_module/s/^#//g' /usr/local/apache2/conf/httpd.conf;
+        echo 'LoadModule proxy_wstunnel_module modules/mod_proxy_wstunnel.so' >> /usr/local/apache2/conf/httpd.conf;
+        echo 'Include conf/extra/portal.conf' >> /usr/local/apache2/conf/httpd.conf;
+        httpd-foreground
+      "
 
   ai-portal:
     build: .
@@ -33,11 +40,16 @@ services:
     expose:
       - "8050"
     volumes:
-      - ./config.yaml:/app/config.yaml
+      - ./config.yaml:/app/config.yaml:ro
     environment:
       - PORT=8050
-      # Original portal version runs by default
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "--silent", "--fail", "http://localhost:8050/_dash-layout"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
     deploy:
       resources:
         limits:
@@ -50,11 +62,17 @@ services:
     expose:
       - "8050"
     volumes:
-      - ./config.yaml:/app/config.yaml
+      - ./config.yaml:/app/config.yaml:ro
     environment:
       - PORT=8050
       - PORTAL_VERSION=tabbed
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "--silent", "--fail", "http://localhost:8050/_dash-layout"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
     deploy:
       resources:
         limits:
@@ -67,11 +85,40 @@ services:
     expose:
       - "8050"
     volumes:
-      - ./config.yaml:/app/config.yaml
+      - ./config.yaml:/app/config.yaml:ro
     environment:
       - PORT=8050
       - PORTAL_VERSION=bysection
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "--silent", "--fail", "http://localhost:8050/_dash-layout"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+
+  ai-portal-appstore:
+    build: .
+    container_name: ai-portal-appstore
+    expose:
+      - "8050"
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+    environment:
+      - PORT=8050
+      - PORTAL_VERSION=appstore
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "--silent", "--fail", "http://localhost:8050/_dash-layout"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
     deploy:
       resources:
         limits:

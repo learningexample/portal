@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 :: Enterprise AI Portal management script
-:: Usage: run.bat [stop|build|run|restart|status|scale|test|test-tabbed|test-bysection]
+:: Usage: run.bat [stop|build|run|restart|status|scale|test|test-tabbed|test-bysection|test-appstore]
 
 if "%1"=="" (
     call :restart_app
@@ -24,6 +24,8 @@ if "%1"=="" (
     call :test_tabbed_app
 ) else if "%1"=="test-bysection" (
     call :test_bysection_app
+) else if "%1"=="test-appstore" (
+    call :test_appstore_app
 ) else (
     goto :usage
 )
@@ -38,7 +40,7 @@ goto :end
 
 :build_app
     echo Building AI Portal Docker image...
-    docker-compose build
+    docker-compose build --no-cache
     echo Build completed.
     goto :eof
 
@@ -63,21 +65,20 @@ goto :end
     docker exec portal-apache cmd /c "apachectl status | findstr "requests currently""
     echo.
     echo Container resource usage:
-    docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}"
+    docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}"
     goto :eof
 
 :scale_info
     echo === AI Portal Scaling Information ===
     echo CPU Cores available: %NUMBER_OF_PROCESSORS%
-    echo Estimated Gunicorn workers per container: !workers!
     set /a workers=%NUMBER_OF_PROCESSORS% * 2 + 1
     echo Estimated Gunicorn workers per container: !workers!
-    set /a total_workers=workers * 3
+    set /a total_workers=workers * 4
     echo Total estimated workers across all portals: !total_workers!
     echo.
     echo Estimated concurrent user capacity:
-    set /a basic_capacity=workers * 3 * 10
-    set /a max_capacity=workers * 3 * 20
+    set /a basic_capacity=workers * 4 * 10
+    set /a max_capacity=workers * 4 * 20
     echo - Basic capacity: ~!basic_capacity! users
     echo - Maximum capacity: ~!max_capacity! users
     echo.
@@ -111,8 +112,14 @@ goto :end
     gunicorn --workers=4 --threads=2 --bind=0.0.0.0:8050 "app-bysection:server"
     goto :eof
 
+:test_appstore_app
+    echo === Testing app store version locally with Gunicorn ===
+    echo Starting Gunicorn with app_store.py...
+    gunicorn --workers=4 --threads=2 --bind=0.0.0.0:8050 app_store:server
+    goto :eof
+
 :usage
-    echo Usage: %~nx0 {stop^|build^|run^|restart^|status^|scale^|test^|test-tabbed^|test-bysection}
+    echo Usage: %~nx0 {stop^|build^|run^|restart^|status^|scale^|test^|test-tabbed^|test-bysection^|test-appstore}
     echo.
     echo Commands:
     echo   stop          - Stop all running containers
@@ -124,6 +131,7 @@ goto :end
     echo   test          - Run the standard app locally with Gunicorn
     echo   test-tabbed   - Run the tabbed app locally with Gunicorn
     echo   test-bysection - Run the collapsible sections app locally with Gunicorn
+    echo   test-appstore - Run the app store version locally with Gunicorn
     goto :eof
 
 :end

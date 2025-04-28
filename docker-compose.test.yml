@@ -1,0 +1,68 @@
+services:
+  # Lightweight web server for testing
+  apache-test:
+    image: httpd:2.4
+    container_name: portal-apache-test
+    ports:
+      - "8051:80"  # Different port to avoid conflicts with production
+    volumes:
+      - ./apache/portal.conf:/usr/local/apache2/conf/extra/portal.conf
+      - ./assets:/var/www/html/assets
+    depends_on:
+      - ai-portal-test
+    restart: "no"  # Don't restart automatically in test mode
+    deploy:
+      resources:
+        limits:
+          cpus: '0.3'
+          memory: 128M
+    command: >
+      sh -c "
+        sed -i '/LoadModule proxy_module/s/^#//g' /usr/local/apache2/conf/httpd.conf;
+        sed -i '/LoadModule proxy_http_module/s/^#//g' /usr/local/apache2/conf/httpd.conf;
+        sed -i '/LoadModule rewrite_module/s/^#//g' /usr/local/apache2/conf/httpd.conf;
+        echo 'LoadModule proxy_wstunnel_module modules/mod_proxy_wstunnel.so' >> /usr/local/apache2/conf/httpd.conf;
+        echo 'Include conf/extra/portal.conf' >> /usr/local/apache2/conf/httpd.conf;
+        httpd-foreground
+      "
+
+  # Single AI portal container for testing
+  ai-portal-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: ai-portal-test
+    expose:
+      - "8050"
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      # Mount selective files and directories to avoid conflicts
+      - ./app.py:/app/app.py:ro
+      - ./app_bytab.py:/app/app_bytab.py:ro
+      - ./app-bysection.py:/app/app-bysection.py:ro
+      - ./app_store.py:/app/app_store.py:ro
+      - ./utils:/app/utils:ro
+      - ./assets:/app/assets:ro
+      - ./test_portal.py:/app/test_portal.py:ro
+      - ./test_portal_e2e.py:/app/test_portal_e2e.py:ro
+      - ./test_dash.py:/app/test_dash.py:ro
+      - ./test_copilot.py:/app/test_copilot.py:ro
+      - ./requirements.txt:/app/requirements.txt:ro
+      # No longer mounting the entire directory or excluding start_test.sh
+    environment:
+      - PORT=8050
+      - TEST_MODE=true
+      - PYTHONDEBUG=1
+    restart: "no"  # Don't restart automatically in test mode
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    # Override command for faster startup
+    healthcheck:
+      test: ["CMD", "curl", "--silent", "--fail", "http://localhost:8050/_dash-layout"]
+      interval: 5s
+      timeout: 3s
+      retries: 2
+      start_period: 3s
