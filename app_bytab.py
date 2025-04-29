@@ -64,7 +64,7 @@ try:
 
     # Initialize the app with a Bootstrap theme and Font Awesome icons
     app_title = f"{company_info.get('name', 'Enterprise')} {portal_title} (Tabbed)" 
-    app = dash.Dash(__name__, 
+    dash_app = dash.Dash(__name__, 
                     external_stylesheets=[
                         dbc.themes.BOOTSTRAP,
                         "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -79,7 +79,7 @@ try:
                     suppress_callback_exceptions=True)
 
     # Add favicon
-    app._favicon = None  # Disable default Dash favicon
+    dash_app._favicon = None  # Disable default Dash favicon
 
     # Add our own favicon to the index template
     index_string = '''
@@ -103,9 +103,9 @@ try:
     </html>
     '''
 
-    app.index_string = index_string
+    dash_app.index_string = index_string
 
-    server = app.server  # for deployment purposes
+    server = dash_app.server  # for deployment purposes
 
     # Get departments from config
     departments = [dept['name'] for dept in config.get('departments', [])]
@@ -345,7 +345,7 @@ try:
     )
 
     # App layout
-    app.layout = html.Div([
+    dash_app.layout = html.Div([
         dcc.Location(id="url"),
         navbar,
         # App Store section (always visible, before tabs)
@@ -373,7 +373,7 @@ try:
     ])
 
     # Callback to update the tab content based on selected tab
-    @app.callback(
+    @dash_app.callback(
         Output("tab-content", "children"),
         Input("tabs", "active_tab")
     )
@@ -382,7 +382,7 @@ try:
         return tab_contents.get(active_tab, tab_contents["tab-shared"])
 
     # Callback to toggle the navbar collapse on small screens
-    @app.callback(
+    @dash_app.callback(
         Output("navbar-collapse", "is_open"),
         [Input("navbar-toggler", "n_clicks")],
         [dash.dependencies.State("navbar-collapse", "is_open")],
@@ -398,7 +398,7 @@ try:
         
         logger.info(f"Starting Dash server on port {port}")
         # Run server, allow connections from any host for Docker
-        app.run(debug=True, host='0.0.0.0', port=port)
+        dash_app.run(debug=True, host='0.0.0.0', port=port)
         
 except Exception as e:
     logger.critical(f"Fatal error: {e}")

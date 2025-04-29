@@ -38,7 +38,7 @@ user_info = config.get('user', {})
 
 # Initialize the app with a Bootstrap theme and Font Awesome icons
 app_title = f"{company_info.get('name', 'Enterprise')} AI Portal" 
-app = dash.Dash(__name__, 
+dash_app = dash.Dash(__name__, 
                 external_stylesheets=[
                     dbc.themes.BOOTSTRAP,
                     "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -53,7 +53,7 @@ app = dash.Dash(__name__,
                 suppress_callback_exceptions=True)
 
 # Add favicon - explicitly set to override Dash default
-app._favicon = None  # Disable default Dash favicon
+dash_app._favicon = None  # Disable default Dash favicon
 
 # Add our own favicon to the index template
 index_string = '''
@@ -77,9 +77,9 @@ index_string = '''
 </html>
 '''
 
-app.index_string = index_string
+dash_app.index_string = index_string
 
-server = app.server  # for deployment purposes
+server = dash_app.server  # for deployment purposes
 
 # Get departments from config
 departments = [dept['name'] for dept in config.get('departments', [])]
@@ -401,7 +401,7 @@ footer = html.Footer(
 )
 
 # App layout
-app.layout = html.Div([
+dash_app.layout = html.Div([
     dcc.Location(id="url"),
     navbar,
     content,
@@ -409,7 +409,7 @@ app.layout = html.Div([
 ])
 
 # Callback to toggle the navbar collapse on small screens
-@app.callback(
+@dash_app.callback(
     Output("navbar-collapse", "is_open"),
     [Input("navbar-toggler", "n_clicks")],
     [dash.dependencies.State("navbar-collapse", "is_open")],
@@ -421,7 +421,7 @@ def toggle_navbar_collapse(n, is_open):
 
 # Create callbacks for each navigation link
 # Shared section navigation
-@app.callback(
+@dash_app.callback(
     Output("url", "hash"),
     [Input("nav-shared-link", "n_clicks")],
     prevent_initial_call=True
@@ -434,7 +434,7 @@ def navigate_to_shared(n_clicks):
 # Department navigation links
 for dept in departments:
     # Create a dynamic callback for each department
-    @app.callback(
+    @dash_app.callback(
         Output("url", "hash"),
         [Input(f"nav-{dept.lower().replace(' ', '-')}-link", "n_clicks")],
         prevent_initial_call=True
@@ -445,7 +445,7 @@ for dept in departments:
         return dash.no_update
 
 # Add client-side JavaScript for smooth scrolling
-app.clientside_callback(
+dash_app.clientside_callback(
     """
     function(hash) {
         if (hash) {
@@ -474,4 +474,4 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8050))
     
     # Run server, allow connections from any host for Docker
-    app.run(debug=False, host='0.0.0.0', port=port)
+    dash_app.run(debug=False, host='0.0.0.0', port=port)

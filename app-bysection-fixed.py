@@ -1,20 +1,10 @@
 """
-Enterprise AI Portal - Collapsible Section Version (app-bysection.py)
-
-Section-based version of the Enterprise AI Portal with collapsible sections
-for each department, providing an organized way to access AI applications.
-
-COPILOT INSTRUCTIONS:
-- This is the collapsible sections portal version
-- Uses Flask server exposed as 'server' for Gunicorn integration
-- WebSocket connections are handled by Apache reverse proxy
-- Uses clientside callbacks for persistent section states with localStorage
-- Default path is /portal-3/
-- Implements more complex UI interaction than other versions
+Enterprise AI Portal - Collapsible Section Version (app-bysection-fixed.py)
+Fixed version that removes the problematic business areas functionality
 """
 
 import dash
-from dash import dcc, html, Input, Output, State, ClientsideFunction, callback_context, ALL
+from dash import dcc, html, Input, Output, State, callback_context, ALL
 import dash_bootstrap_components as dbc
 import yaml
 import os
@@ -195,6 +185,40 @@ app_icon_colors = {
     'Voice Assistant': '#0277BD',
 }
 
+# Define business area styles for consistent appearance
+business_area_styles = {
+    'All': {
+        'icon': 'fa-solid fa-globe',
+        'bg': '#0D47A1',
+        'color': '#FFFFFF'
+    },
+    'IA': {
+        'icon': 'fa-solid fa-robot',
+        'bg': '#7B1FA2',
+        'color': '#FFFFFF'
+    },
+    'Direct': {
+        'icon': 'fa-solid fa-arrow-right',
+        'bg': '#1B5E20',
+        'color': '#FFFFFF'
+    },
+    'GMAD': {
+        'icon': 'fa-solid fa-chart-line',
+        'bg': '#E65100',
+        'color': '#FFFFFF'
+    },
+    'Marketing': {
+        'icon': 'fa-solid fa-bullhorn',
+        'bg': '#C62828',
+        'color': '#FFFFFF'
+    },
+    'Cross-NYLI': {
+        'icon': 'fa-solid fa-shuffle',
+        'bg': '#00695C',
+        'color': '#FFFFFF'
+    }
+}
+
 # Create the app cards with colorful icons
 def create_app_cards(dept):
     cards = []
@@ -203,7 +227,7 @@ def create_app_cards(dept):
         business_area = app.get('business_area', 'All')  # Get business area or default to 'All'
         
         # Set icon color based on app name or fall back to department color
-        icon_color = app_icon_colors.get(app['name'], icon_colors.get(dept, company_info.get('theme_color', '#4a6fa5')))
+        icon_color = app_icon_colors.get(app.get('name', ''), icon_colors.get(dept, company_info.get('theme_color', '#4a6fa5')))
         
         # Define business area badge styling based on the area
         badge_styles = {
@@ -273,12 +297,12 @@ def create_app_cards(dept):
                     # Header section
                     html.Div([
                         html.I(className=f"{icon} fa-2x me-2", style={"color": icon_color}),
-                        html.H5(app['name'], className="card-title d-inline-block align-middle mb-0")
+                        html.H5(app.get('name', ''), className="card-title d-inline-block align-middle mb-0")
                     ], className="d-flex align-items-center mb-3"),
                     
                     # Description section - will stretch to fill available space
                     html.Div([
-                        html.P(app['description'], className="card-text")
+                        html.P(app.get('description', ''), className="card-text")
                     ], className="flex-grow-1 mb-3"),
                     
                     # Button section - always at the bottom
@@ -286,7 +310,7 @@ def create_app_cards(dept):
                         dbc.Button([
                             html.I(className="fas fa-external-link-alt me-2"),
                             "Launch App"
-                        ], color="primary", href=app['url'], className="w-100")
+                        ], color="primary", href=app.get('url', '#'), className="w-100")
                     ])
                 ], className="d-flex flex-column h-100") # Make the div take full height of card
             ])
@@ -317,40 +341,6 @@ user_dropdown = dbc.DropdownMenu(
     toggleClassName="p-0",
     align_end=True,
 )
-
-# Define business area styles for consistent appearance
-business_area_styles = {
-    'All': {
-        'icon': 'fa-solid fa-globe',
-        'bg': '#0D47A1',
-        'color': '#FFFFFF'
-    },
-    'IA': {
-        'icon': 'fa-solid fa-robot',
-        'bg': '#7B1FA2',
-        'color': '#FFFFFF'
-    },
-    'Direct': {
-        'icon': 'fa-solid fa-arrow-right',
-        'bg': '#1B5E20',
-        'color': '#FFFFFF'
-    },
-    'GMAD': {
-        'icon': 'fa-solid fa-chart-line',
-        'bg': '#E65100',
-        'color': '#FFFFFF'
-    },
-    'Marketing': {
-        'icon': 'fa-solid fa-bullhorn',
-        'bg': '#C62828',
-        'color': '#FFFFFF'
-    },
-    'Cross-NYLI': {
-        'icon': 'fa-solid fa-shuffle',
-        'bg': '#00695C',
-        'color': '#FFFFFF'
-    }
-}
 
 # Extract all unique business areas from the apps
 business_areas = set()
@@ -564,52 +554,6 @@ content = html.Div(
             ], className="text-center mt-5 mb-3")
         ], className="mb-5"),
         
-        # Business Area sections - hidden by default, shown when user selects from dropdown
-        html.Div([
-            *[
-                html.Div([
-                    html.Div(
-                        [
-                            html.I(className=f"{business_area_styles[area]['icon']} fa-2x me-3", 
-                                   style={"color": business_area_styles[area]['bg']}),
-                            html.H2([
-                                html.Span(
-                                    area,
-                                    style={
-                                        "backgroundColor": business_area_styles[area]['bg'],
-                                        "color": business_area_styles[area]['color'],
-                                        "padding": "0.25rem 0.75rem",
-                                        "borderRadius": "1rem",
-                                    }
-                                ),
-                                " Business Area Applications"
-                            ], className="d-inline m-0")
-                        ],
-                        className="d-flex align-items-center mt-4 mb-3"
-                    ),
-                    html.P(f"Applications designated for the {area} business area.", className="lead mb-3"),
-                    
-                    # Create a row of cards only if there are apps for this business area
-                    dbc.Row([
-                        # Get all apps with this business area across all departments
-                        dbc.Col(create_app_cards(dept_name)[i], md=4)
-                        for dept_name, dept_apps in apps.items()
-                        for i, app in enumerate(dept_apps)
-                        if app.get('business_area') == area
-                    ], className="g-4") if any(app.get('business_area') == area for dept_apps in apps.values() for app in dept_apps) else html.P("No applications currently available for this business area."),
-                    
-                    # Section separator
-                    html.Div([
-                        html.Hr(style={"borderTop": f"4px solid {business_area_styles[area]['bg']}", "opacity": "0.8", "borderRadius": "2px"})
-                    ], className="text-center mt-5 mb-3")
-                ], 
-                id=f"business-area-{area.lower().replace(' ', '-').replace('-', '_')}",
-                className="mb-5",
-                style={"display": "none"}  # Initially hidden, will be shown via callback
-                ) for area in business_areas
-            ]
-        ], id="business-area-sections"),
-        
         # Shared apps section
         html.Div([
             create_section_header(shared_title, shared_icon, "shared", icon_colors.get("Shared"), shared_description),
@@ -709,7 +653,7 @@ def toggle_navbar_collapse(n, is_open):
 )
 def initialize_states(pathname, current_states):
     # If we have stored states, use them
-    if (current_states):
+    if current_states:
         return current_states
     
     # Otherwise create default states (only shared section is open)
@@ -813,68 +757,24 @@ def navigate_to_shared(n_clicks):
         return "shared"
     return dash.no_update
 
-# Department navigation links - using a more robust approach
-for i, dept in enumerate(departments):
-    # Create a proper ID that's consistent with how the links are created in the layout
+# Department navigation links
+def create_nav_callback(dept_id):
+    @dash_app.callback(
+        Output("url", "hash", allow_duplicate=True),
+        [Input(f"nav-{dept_id}-link", "n_clicks")],
+        prevent_initial_call=True
+    )
+    def navigate_to_department(n_clicks):
+        if n_clicks:
+            return dept_id
+        return dash.no_update
+
+# Register department navigation callbacks
+for dept in departments:
     dept_id = dept.lower().replace(' ', '-')
-    
-    # Define a function that creates a closure with the specific department ID
-    def create_nav_callback(dept_id=dept_id):
-        @dash_app.callback(
-            Output("url", "hash", allow_duplicate=True),
-            [Input(f"nav-{dept_id}-link", "n_clicks")],
-            prevent_initial_call=True
-        )
-        def navigate_to_department(n_clicks):
-            if n_clicks:
-                return dept_id
-            return dash.no_update
-        return navigate_to_department
-    
-    # Create and register the callback for this specific department
-    navigate_callback = create_nav_callback()
+    create_nav_callback(dept_id)
 
-# Business Areas navigation - Using a single combined callback instead of individual callbacks
-@dash_app.callback(
-    [Output(f"business-area-{area.lower().replace(' ', '-').replace('-', '_')}", "style") for area in business_areas] + 
-    [Output("business-area-sections", "className")],
-    [Input(f"business-area-{area.lower().replace(' ', '-').replace('-', '_')}-link", "n_clicks") for area in business_areas],
-    [State("business-area-sections", "className")]
-)
-def handle_business_area_navigation(*args):
-    # Get all n_clicks arguments (excluding the last state argument)
-    n_clicks_list = args[:-1]
-    current_class = args[-1]
-    
-    # If no clicks happened yet, hide all sections
-    if all(n is None for n in n_clicks_list):
-        return [{"display": "none"} for _ in business_areas] + [current_class]
-    
-    # Find which area was clicked by examining the callback context
-    ctx = callback_context
-    if not ctx.triggered:
-        return [{"display": "none"} for _ in business_areas] + [current_class]
-    
-    # Get the ID of the clicked link
-    triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
-    
-    # Find which area corresponds to the clicked link
-    area_styles = []
-    for area in business_areas:
-        area_id = f"business-area-{area.lower().replace(' ', '-').replace('-', '_')}"
-        if f"{area_id}-link" == triggered_id:
-            # Show this area
-            area_styles.append({"display": "block"})
-        else:
-            # Hide all other areas
-            area_styles.append({"display": "none"})
-    
-    # Return all outputs
-    return area_styles + ["business-area-active"]
-
-# Add client-side JavaScript for handling business area navigation
-
-# Add client-side JavaScript for smooth scrolling and section auto-expand
+# Client-side callback for smooth scrolling and section auto-expand
 dash_app.clientside_callback(
     """
     function(hash, sectionStates) {

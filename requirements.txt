@@ -1,9 +1,27 @@
+# Core dependencies
 dash==2.15.0
 dash-bootstrap-components==1.5.0
+dash-core-components==2.0.0  # Core dash UI components
+dash-html-components==2.0.0  # HTML components for dash
+dash-table==5.0.0  # Table components for dash
 pandas==2.1.3
 gunicorn==21.2.0
 PyYAML==6.0.1
+plotly==5.18.0  # Required for Dash visualizations
+werkzeug==3.0.1  # Needed for proper routing and error handling
+flask==3.0.0  # Underlying framework for Dash
+
+# Utility packages
+python-dotenv==1.0.0  # For environment variable management
+requests==2.31.0  # For API calls
+importlib-metadata==6.8.0  # For module metadata inspection
+
 # Testing dependencies
 pytest==7.4.0
 selenium==4.15.2
-requests==2.31.0
+pytest-cov==4.1.0  # For test coverage reporting
+pytest-dash==2.2.0  # Dash-specific testing utilities
+webdriver-manager==4.0.1  # For managing webdriver in tests
+
+# Production dependencies
+waitress==2.1.2  # Production WSGI server alternative to gunicorn for Windows

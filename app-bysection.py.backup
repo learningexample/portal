@@ -69,7 +69,7 @@ user_info = config.get('user', {})
 
 # Initialize the app with a Bootstrap theme and Font Awesome icons
 app_title = f"{company_info.get('name', 'Enterprise')} AI Portal" 
-dash_app = dash.Dash(__name__, 
+app = dash.Dash(__name__, 
                 external_stylesheets=[
                     dbc.themes.BOOTSTRAP,
                     "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
@@ -84,7 +84,7 @@ dash_app = dash.Dash(__name__,
                 suppress_callback_exceptions=True)  # Add this to suppress callback exceptions
 
 # Add favicon - explicitly set to override Dash default
-dash_app._favicon = None  # Disable default Dash favicon
+app._favicon = None  # Disable default Dash favicon
 
 # Add our own favicon and localStorage script to the index template
 index_string = '''
@@ -108,8 +108,8 @@ index_string = '''
 </html>
 '''
 
-dash_app.index_string = index_string
-server = dash_app.server  # for deployment purposes
+app.index_string = index_string
+server = app.server  # for deployment purposes
 
 # Get departments from config
 departments = [dept['name'] for dept in config.get('departments', [])]
@@ -362,6 +362,31 @@ for dept_name, dept_apps in apps.items():
 # Convert to sorted list
 business_areas = sorted(list(business_areas))
 
+# Create business areas dropdown menu
+business_areas_dropdown = dbc.DropdownMenu(
+    [
+        dbc.DropdownMenuItem([
+            html.Span([
+                html.I(className=f"{business_area_styles[area]['icon']} me-2"),
+                area
+            ],
+            style={
+                "color": business_area_styles[area]['color'],
+                "backgroundColor": business_area_styles[area]['bg'],
+                "borderRadius": "12px",
+                "padding": "3px 8px",
+                "fontSize": "0.9rem",
+                "display": "inline-flex",
+                "alignItems": "center",
+                "gap": "4px"
+            })
+        ], href=f"#business-area-{area.lower().replace(' ', '-').replace('-', '_')}", id=f"business-area-{area.lower().replace(' ', '-').replace('-', '_')}-link") for area in business_areas
+    ],
+    label=[html.I(className="fa-solid fa-building me-1"), "Business Areas"],
+    nav=True,
+    className="mx-2",
+)
+
 # Top Navigation Bar
 navbar = dbc.Navbar(
     dbc.Container(
@@ -398,6 +423,8 @@ navbar = dbc.Navbar(
                             nav=True,
                             className="mx-2"
                         ),
+                        # Business Areas dropdown
+                        business_areas_dropdown,
                         # Shared apps menu item
                         dbc.NavItem(dbc.NavLink([
                             html.I(className=f"{shared_icon} me-2"),
@@ -683,7 +710,7 @@ footer = html.Footer(
 )
 
 # App layout
-dash_app.layout = html.Div([
+app.layout = html.Div([
     dcc.Location(id="url"),
     navbar,
     content,
@@ -691,7 +718,7 @@ dash_app.layout = html.Div([
 ])
 
 # Callback to toggle the navbar collapse on small screens
-@dash_app.callback(
+@app.callback(
     Output("navbar-collapse", "is_open"),
     [Input("navbar-toggler", "n_clicks")],
     [State("navbar-collapse", "is_open")],
@@ -702,7 +729,7 @@ def toggle_navbar_collapse(n, is_open):
     return is_open
 
 # Initialize section states from localStorage or defaults
-@dash_app.callback(
+@app.callback(
     Output("section-states", "data"),
     Input("url", "pathname"),
     State("section-states", "data"),
@@ -717,7 +744,7 @@ def initialize_states(pathname, current_states):
     return default_states
 
 # Apply states from the store to all sections
-@dash_app.callback(
+@app.callback(
     [Output({"type": "section-collapse", "index": ALL}, "is_open"),
      Output({"type": "section-chevron", "index": ALL}, "style")],
     Input("section-states", "data"),
@@ -763,7 +790,7 @@ def apply_states_to_sections(states):
     return is_open_list, styles
 
 # Toggle section when header is clicked
-@dash_app.callback(
+@app.callback(
     Output("section-states", "data", allow_duplicate=True),
     Input({"type": "section-header", "index": ALL}, "n_clicks"),
     State("section-states", "data"),
@@ -803,7 +830,7 @@ def toggle_section(n_clicks_list, current_states):
         return current_states
 
 # Shared section navigation
-@dash_app.callback(
+@app.callback(
     Output("url", "hash", allow_duplicate=True),
     [Input("nav-shared-link", "n_clicks")],
     prevent_initial_call=True
@@ -820,7 +847,7 @@ for i, dept in enumerate(departments):
     
     # Define a function that creates a closure with the specific department ID
     def create_nav_callback(dept_id=dept_id):
-        @dash_app.callback(
+        @app.callback(
             Output("url", "hash", allow_duplicate=True),
             [Input(f"nav-{dept_id}-link", "n_clicks")],
             prevent_initial_call=True
@@ -834,48 +861,64 @@ for i, dept in enumerate(departments):
     # Create and register the callback for this specific department
     navigate_callback = create_nav_callback()
 
-# Business Areas navigation - Using a single combined callback instead of individual callbacks
-@dash_app.callback(
-    [Output(f"business-area-{area.lower().replace(' ', '-').replace('-', '_')}", "style") for area in business_areas] + 
-    [Output("business-area-sections", "className")],
-    [Input(f"business-area-{area.lower().replace(' ', '-').replace('-', '_')}-link", "n_clicks") for area in business_areas],
-    [State("business-area-sections", "className")]
-)
-def handle_business_area_navigation(*args):
-    # Get all n_clicks arguments (excluding the last state argument)
-    n_clicks_list = args[:-1]
-    current_class = args[-1]
+# Business Areas navigation callbacks
+business_area_callbacks = []  # Store callback references to prevent garbage collection
+
+for area in business_areas:
+    area_id = f"business-area-{area.lower().replace(' ', '-').replace('-', '_')}"
     
-    # If no clicks happened yet, hide all sections
-    if all(n is None for n in n_clicks_list):
-        return [{"display": "none"} for _ in business_areas] + [current_class]
+    # Define the callback function outside the loop
+    @app.callback(
+        [Output(f"business-area-{area.lower().replace(' ', '-').replace('-', '_')}", "style"),
+         Output("business-area-sections", "className")],
+        [Input(f"business-area-{area.lower().replace(' ', '-').replace('-', '_')}-link", "n_clicks")],
+        [State("business-area-sections", "className")]
+    )
+    def show_business_area_section(n_clicks, current_class, area_id=area_id):
+        if n_clicks is None:
+            return {"display": "none"}, current_class
+        
+        # Return visible style for this section and add active class to the container
+        return {"display": "block"}, "business-area-active"
     
-    # Find which area was clicked by examining the callback context
-    ctx = callback_context
-    if not ctx.triggered:
-        return [{"display": "none"} for _ in business_areas] + [current_class]
-    
-    # Get the ID of the clicked link
-    triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
-    
-    # Find which area corresponds to the clicked link
-    area_styles = []
-    for area in business_areas:
-        area_id = f"business-area-{area.lower().replace(' ', '-').replace('-', '_')}"
-        if f"{area_id}-link" == triggered_id:
-            # Show this area
-            area_styles.append({"display": "block"})
-        else:
-            # Hide all other areas
-            area_styles.append({"display": "none"})
-    
-    # Return all outputs
-    return area_styles + ["business-area-active"]
+    # Store the callback reference
+    business_area_callbacks.append(show_business_area_section)
 
 # Add client-side JavaScript for handling business area navigation
+app.clientside_callback(
+    """
+    function(hash) {
+        if (hash && hash.startsWith('#business-area-')) {
+            // Get the business area ID from the hash
+            const areaId = hash.substring(1);
+            
+            // Find the element and scroll to it
+            setTimeout(() => {
+                const targetElement = document.getElementById(areaId);
+                if (targetElement) {
+                    console.log("Scrolling to business area:", areaId);
+                    targetElement.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                    
+                    // Make the element visible
+                    targetElement.style.display = 'block';
+                } else {
+                    console.log("Target business area not found:", areaId);
+                }
+            }, 100);
+        }
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output("url", "search"),  # Dummy output that won't affect anything
+    [Input("url", "hash")],
+    prevent_initial_call=True
+)
 
 # Add client-side JavaScript for smooth scrolling and section auto-expand
-dash_app.clientside_callback(
+app.clientside_callback(
     """
     function(hash, sectionStates) {
         if (hash) {
@@ -934,4 +977,4 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8050))
     
     # Run server, allow connections from any host for Docker
-    dash_app.run(debug=True, host='0.0.0.0', port=port)
+    app.run(debug=True, host='0.0.0.0', port=port)
