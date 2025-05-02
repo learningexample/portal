@@ -362,12 +362,6 @@ app_store_icon = app_store.get('icon', "fa-solid fa-store")
 app_store_description = app_store.get('description', "Discover and install the latest AI applications")
 apps_by_dept['App Store'] = app_store.get('apps', [])
 
-# Add shared apps
-apps_by_dept['Shared'] = config.get('shared', {}).get('apps', [])
-shared_title = config.get('shared', {}).get('title', "Shared Apps")
-shared_icon = config.get('shared', {}).get('icon', "fa-solid fa-share-nodes")
-shared_description = config.get('shared', {}).get('description', "Cross-departmental AI tools")
-
 # Combine all apps into a single list for "All Apps" tab
 all_apps = []
 for dept_name, dept_apps in apps_by_dept.items():
@@ -383,7 +377,6 @@ icon_colors = {
     'Operations': '#0277BD',
     'HR': '#6A1B9A',
     'IT': '#EF6C00',
-    'Shared': '#00695C',
     'App Store': '#1565C0',
 }
 
@@ -486,6 +479,47 @@ def create_app_card(app_item, dept=None):
     # Set icon color based on department
     icon_color = icon_colors.get(department, company_info.get('theme_color', '#4a6fa5'))
     
+    # Determine if we should show Launch App button, Contact Me button, or both
+    has_url = 'url' in app_item and app_item.get('url', '').strip()
+    has_email = 'email' in app_item and app_item.get('email', '').strip()
+    
+    # Decide what button(s) to display
+    button_content = html.Div(className="d-flex w-100")
+    
+    if has_url and has_email:
+        # If both are available, show both buttons side by side
+        button_content = html.Div([
+            html.A("LAUNCH", 
+                className="btn-get me-2 flex-grow-1 text-center",
+                href=app_item['url'],
+                target="_blank"
+            ),
+            html.A("CONTACT", 
+                className="btn-contact flex-grow-1 text-center",
+                href=f"mailto:{app_item['email']}",
+                target="_blank"
+            )
+        ], className="d-flex w-100")
+    elif has_url:
+        # If only URL is available
+        button_content = html.A("GET", 
+                               className="btn-get w-100 text-center", 
+                               href=app_item['url'], 
+                               target="_blank")
+    elif has_email:
+        # If only email is available
+        button_content = html.A("CONTACT", 
+            className="btn-contact w-100 text-center",
+            href=f"mailto:{app_item['email']}",
+            target="_blank"
+        )
+    else:
+        # Fallback if neither are available
+        button_content = html.Button("INFO", 
+            className="btn-disabled w-100",
+            disabled=True
+        )
+    
     return html.Div([
         dbc.Card([
             dbc.CardBody([
@@ -524,8 +558,8 @@ def create_app_card(app_item, dept=None):
                                "WebkitBoxOrient": "vertical"
                            }),
                     
-                    # Get button
-                    html.Button("GET", className="btn-get")
+                    # Button section
+                    button_content
                 ])
             ])
         ], className="app-card h-100")
@@ -697,7 +731,7 @@ def render_tab_content(active_tab, selected_category):
     if ctx.triggered and ctx.triggered[0]['prop_id'] == 'selected-category.data' and selected_category:
         # Show apps for the selected category
         dept = selected_category  # The selected department name
-        if dept in departments or dept == 'Shared':
+        if dept in departments:
             return html.Div([
                 # Back button to return to categories
                 html.Button([
@@ -712,7 +746,7 @@ def render_tab_content(active_tab, selected_category):
                     html.I(className=next((d.get('icon', 'fa-solid fa-folder') 
                                          for d in config.get('departments', []) 
                                          if d['name'] == dept), 
-                                         shared_icon if dept == 'Shared' else 'fa-solid fa-folder'), 
+                                         'fa-solid fa-folder'), 
                            style={"color": icon_colors.get(dept, '#4a6fa5'), "fontSize": "2rem", "marginRight": "15px"}),
                     html.H2(f"{dept} Applications", className="mb-0")
                 ], className="d-flex align-items-center mb-4"),
@@ -762,9 +796,6 @@ def render_tab_content(active_tab, selected_category):
     elif active_tab == "tab-apps":
         # Apps tab - all apps by department
         return html.Div([
-            # Shared apps
-            create_app_collection(shared_title, apps_by_dept['Shared'], icon=shared_icon, color=icon_colors.get('Shared'), dept='Shared'),
-            
             # Department apps
             *[create_app_collection(
                 f"{dept} Apps", 

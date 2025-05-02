@@ -12,6 +12,7 @@ app = dash.Dash(__name__,
                     dbc.themes.BOOTSTRAP,
                     "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
                 ],
+                url_base_pathname="/AppStore/",
                 suppress_callback_exceptions=True)
 
 # Simple top navbar
@@ -41,27 +42,8 @@ navbar = dbc.Navbar(
 # Simple content
 content = html.Div(
     [
-        # Shared apps section
-        html.Div([
-            html.Div([
-                html.I(className="fa-solid fa-share-nodes fa-2x me-3", style={"color": "#00695C"}),
-                html.H2("Shared Apps", className="d-inline m-0")
-            ], className="d-flex align-items-center mt-4 mb-3"),
-            html.P("Cross-departmental AI tools", className="lead mb-3"),
-            
-            dbc.Row([
-                dbc.Col(
-                    dbc.Card([
-                        dbc.CardBody([
-                            html.H5("Chatbot Assistant", className="card-title"),
-                            html.P("An AI chatbot that can answer questions about your business.", className="card-text"),
-                            dbc.Button("Launch App", color="primary")
-                        ])
-                    ]), 
-                    md=4
-                )
-            ], className="g-4"),
-        ], className="mb-5"),
+        # Content section - shared apps removed
+        html.Div(className="container")
     ],
     className="container",
     style={"padding": "1rem"},

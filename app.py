@@ -97,27 +97,16 @@ app_store_icon = app_store.get('icon', "fa-solid fa-store")
 app_store_description = app_store.get('description', "Discover and install the latest AI applications")
 apps['App Store'] = app_store.get('apps', [])
 
-# Add shared apps
-apps['Shared'] = config.get('shared', {}).get('apps', [])
-shared_title = config.get('shared', {}).get('title', "Shared Apps")
-shared_icon = config.get('shared', {}).get('icon', "fa-solid fa-share-nodes")
-shared_description = config.get('shared', {}).get('description', "Cross-departmental AI tools")
-
 # Get department descriptions
 dept_descriptions = {}
 for dept in config.get('departments', []):
     dept_descriptions[dept['name']] = dept.get('description', "")
 
-# Icon color mapping for different departments and shared apps
-icon_colors = {
-    'Finance': '#2E7D32',  # Green
-    'Marketing': '#C62828',  # Red
-    'Operations': '#0277BD',  # Blue
-    'HR': '#6A1B9A',  # Purple
-    'IT': '#EF6C00',  # Orange
-    'Shared': '#00695C',  # Teal
-    'App Store': '#1565C0',  # Blue
-}
+# Icon color mapping for different departments
+# Get department colors from config
+icon_colors = config.get('department_colors', {})
+# Set default fallback color
+default_color = icon_colors.get('default', '#4a6fa5')
 
 # App-specific icon color mapping
 app_icon_colors = {
@@ -138,6 +127,31 @@ app_icon_colors = {
     'Image Generator': '#039BE5',
     'Voice Assistant': '#0277BD',
 }
+
+# Helper functions for handling contact information
+def has_contact_info(app):
+    """Check if the app has any contact information."""
+    return app.get('contact_url') or app.get('contact') or app.get('contact_email') or app.get('email')
+
+def get_contact_href(app):
+    """Get the appropriate href value for the contact button."""
+    # First check for the combined contact field
+    if app.get('contact'):
+        if app.get('contact').startswith(('http://', 'https://', 'mailto:')):
+            return app.get('contact')
+        elif '@' in app.get('contact', '') and '.' in app.get('contact', '').split('@')[1]:
+            return f"mailto:{app.get('contact')}"
+        return app.get('contact')
+    
+    # Fallback to separate fields for backward compatibility
+    if app.get('contact_url'):
+        return app.get('contact_url')
+    if app.get('contact_email'):
+        return f"mailto:{app.get('contact_email')}"
+    if app.get('email'):
+        return f"mailto:{app.get('email')}"
+    
+    return "#"
 
 # Create the app cards with colorful icons
 def create_app_cards(dept):
@@ -165,10 +179,39 @@ def create_app_cards(dept):
                     
                     # Button section - always at the bottom
                     html.Div([
-                        dbc.Button([
-                            html.I(className="fas fa-external-link-alt me-2"),
-                            "Launch App"
-                        ], color="primary", href=app['url'], className="w-100")
+                        # Create buttons based on available information
+                        html.Div([
+                            # Launch App button if URL is provided
+                            dbc.Button([
+                                html.I(className="fas fa-external-link-alt me-2"),
+                                "Launch App"
+                            ], 
+                            color="primary", 
+                            href=app['url'], 
+                            target="_blank",
+                            className="me-2 flex-grow-1") if 'url' in app and app['url'] and app['url'].strip() else None,
+                            
+                            # Contact button - can be URL or mailto based on contact field value
+                            dbc.Button([
+                                html.I(className="fas fa-comment me-2"),
+                                "Contact"
+                            ], 
+                            color="info", 
+                            href=get_contact_href(app),
+                            target="_blank",
+                            className="flex-grow-1" if not ('url' in app and app['url'] and app['url'].strip()) else "",
+                            disabled=not has_contact_info(app)),
+                            
+                            # Fallback button if neither URL nor contact info is provided
+                            dbc.Button([
+                                html.I(className="fas fa-info-circle me-2"),
+                                "No Link Available"
+                            ], 
+                            color="secondary", 
+                            disabled=True, 
+                            className="w-100") if not (('url' in app and app['url'] and app['url'].strip()) or 
+                                                     (app.get('contact_url') or app.get('contact_email') or app.get('email'))) else None
+                        ], className="d-flex")
                     ])
                 ], className="d-flex flex-column h-100") # Make the div take full height of card
             ])
@@ -236,11 +279,6 @@ navbar = dbc.Navbar(
                             nav=True,
                             className="mx-2"
                         ),
-                        # Shared apps menu item
-                        dbc.NavItem(dbc.NavLink([
-                            html.I(className=f"{shared_icon} me-2"),
-                            shared_title
-                        ], href="#shared")),
                         # User profile dropdown
                         user_dropdown,
                     ],
@@ -264,31 +302,54 @@ def create_section_header(title, icon, id_name, dept=None):
     # Set icon color based on department
     icon_color = icon_colors.get(dept, company_info.get('theme_color', '#4a6fa5'))
     
-    return html.H2([
-        html.I(className=f"{icon} me-3", style={"color": icon_color, "fontSize": "1.8rem"}),  # Increased icon size and margin
-        title
-    ], id=id_name, className="mt-4 mb-3")
+    return html.Div([
+        html.Div([
+            # Icon container with glass-morphism effect
+            html.Div([
+                html.I(className=f"{icon}", 
+                       style={
+                           "color": "white", 
+                           "fontSize": "1.8rem",
+                           "filter": "drop-shadow(0 2px 3px rgba(0,0,0,0.2))"
+                       })
+            ],
+            style={
+                "display": "flex",
+                "alignItems": "center",
+                "justifyContent": "center",
+                "width": "48px",
+                "height": "48px",
+                "borderRadius": "50%",
+                "background": "rgba(255, 255, 255, 0.2)",
+                "backdropFilter": "blur(5px)",
+                "boxShadow": "inset 0 0 0 1px rgba(255, 255, 255, 0.2)"
+            },
+            className="me-3"),
+            
+            # Title with enhanced typography
+            html.H2(title, 
+                   style={
+                       "color": "white", 
+                       "margin": "0",
+                       "fontWeight": "600",
+                       "textShadow": "0 1px 2px rgba(0, 0, 0, 0.15)",
+                       "letterSpacing": "0.5px"
+                   })
+        ], 
+        className="d-flex align-items-center p-3 rounded",
+        style={
+            "background": f"linear-gradient(135deg, {icon_color}, {icon_color}dd, {icon_color}00)",
+            "boxShadow": "0 4px 15px rgba(0, 0, 0, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.15)",
+            "borderLeft": "5px solid rgba(255, 255, 255, 0.7)",
+            "marginBottom": "1rem",
+            "position": "relative",
+            "overflow": "hidden"
+        }),
+    ], id=id_name)
 
 # Create quick navigation links
 def create_quick_nav_links():
-    # Add shared section link
-    links = [
-        html.A([
-            html.Span([
-                html.I(className=f"{shared_icon} me-1"),
-                shared_title
-            ])
-        ], 
-        id="nav-shared-link",
-        className="badge bg-light me-2 mb-2 p-2 text-decoration-none", 
-        style={
-            "color": icon_colors.get("Shared"), 
-            "borderColor": icon_colors.get("Shared"), 
-            "borderWidth": "1px", 
-            "borderStyle": "solid",
-            "cursor": "pointer"
-        })
-    ]
+    links = []
     
     # Add department section links
     for i, dept in enumerate(departments):
@@ -315,7 +376,7 @@ def create_quick_nav_links():
     
     return links
 
-# Main content layout - App Store first as a non-section element, then Shared apps, then department apps
+# Main content layout - App Store first as a non-section element, then department apps
 content = html.Div(
     [
         # AI App Store section (first, but not as a section)
@@ -341,18 +402,9 @@ content = html.Div(
                     dbc.Col(card, md=4) for card in create_app_cards('App Store')
                 ], className="g-4")
             ])
-        ], className="mb-5"),
-        
-        # Shared apps section (second)
-        html.Div([
-            create_section_header(shared_title, shared_icon, "shared", "Shared"),
-            html.P(shared_description, className="lead mb-4"),
-            dbc.Row([
-                dbc.Col(card, md=4) for card in create_app_cards('Shared')
-            ], className="g-4")
-        ], className="mb-5")
+        ], className="mb-5 p-4"),
     ] + [
-        # Department apps sections (after shared)
+        # Department apps sections
         html.Div([
             create_section_header(
                 f"{dept} AI Applications",
@@ -364,7 +416,8 @@ content = html.Div(
             dbc.Row([
                 dbc.Col(card, md=4) for card in create_app_cards(dept)
             ], className="g-4")
-        ], className="mb-5") for dept in departments
+        ], 
+        className="mb-5 p-4") for dept in departments
     ],
     className="container",
     style={
@@ -418,18 +471,6 @@ def toggle_navbar_collapse(n, is_open):
     if n:
         return not is_open
     return is_open
-
-# Create callbacks for each navigation link
-# Shared section navigation
-@dash_app.callback(
-    Output("url", "hash"),
-    [Input("nav-shared-link", "n_clicks")],
-    prevent_initial_call=True
-)
-def navigate_to_shared(n_clicks):
-    if n_clicks:
-        return "shared"
-    return dash.no_update
 
 # Department navigation links
 for dept in departments:

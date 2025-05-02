@@ -123,24 +123,16 @@ try:
     app_store_description = app_store.get('description', "Discover and install the latest AI applications")
     apps['App Store'] = app_store.get('apps', [])
 
-    # Add shared apps
-    shared = config.get('shared', {})
-    apps['Shared'] = shared.get('apps', [])
-    shared_title = shared.get('title', "Shared Apps")
-    shared_icon = shared.get('icon', "fa-solid fa-share-nodes")
-    shared_description = shared.get('description', "Applications shared across all departments")
-
     # Theme color from company settings
     theme_color = company_info.get('theme_color', '#4a6fa5')
 
-    # Icon color mapping for different departments and shared apps
+    # Icon color mapping for different departments
     icon_colors = {
         'Finance': '#2E7D32',  # Green
         'Marketing': '#C62828',  # Red
         'Operations': '#0277BD',  # Blue
         'HR': '#6A1B9A',  # Purple
         'IT': '#EF6C00',  # Orange
-        'Shared': '#00695C',  # Teal
         'App Store': '#1565C0',  # Blue
     }
 
@@ -176,7 +168,7 @@ try:
                             dbc.Button([
                                 html.I(className="fas fa-external-link-alt me-2"),
                                 "Launch App"
-                            ], color="primary", href=app['url'], className="w-100")
+                            ], color="primary", href=app['url'], className="w-100", target="_blank")
                         ])
                     ], className="d-flex flex-column h-100") # Make the div take full height of card
                 ])
@@ -259,17 +251,6 @@ try:
     # Create tabs content for each department
     tab_contents = {}
 
-    # Create shared content
-    tab_contents["tab-shared"] = html.Div([
-        html.H3([
-            html.I(className=f"{shared_icon} me-3", style={"color": icon_colors.get('Shared', theme_color), "fontSize": "1.6rem"}),  # Increased icon size and margin
-            shared_title
-        ]),
-        html.P(shared_description, className="lead mb-3") if shared_description else None,
-        html.Hr(),
-        dbc.Row(create_app_cards('Shared'), className="g-4")
-    ])
-
     # Create department content
     for dept in departments:
         dept_id = f"tab-{dept.lower().replace(' ', '-')}"
@@ -291,10 +272,12 @@ try:
             dbc.Row(create_app_cards(dept), className="g-4")
         ])
 
+    # First department as default active tab or fallback
+    default_tab = f"tab-{departments[0].lower().replace(' ', '-')}" if departments else None
+
     # Create a simple tabs component
     tabs = html.Div([
         dbc.Tabs([
-            dbc.Tab(label=f"🔄 {shared_title}", tab_id="tab-shared", label_style={"color": icon_colors.get('Shared'), "fontSize": "1.1rem"}),  # Increased font size
             *[
                 dbc.Tab(
                     label=f"📂 {dept}", 
@@ -302,7 +285,7 @@ try:
                     label_style={"color": icon_colors.get(dept, theme_color), "fontSize": "1.1rem"}  # Increased font size
                 ) for dept in departments
             ]
-        ], id="tabs", active_tab="tab-shared"),
+        ], id="tabs", active_tab=default_tab),
         html.Div(id="tab-content", className="pt-3")
     ], className="mt-4")
 
@@ -367,7 +350,7 @@ try:
             html.P(app_store_description, className="lead mb-3"),
             dbc.Row(create_app_cards('App Store'), className="g-4 mb-5")
         ], fluid=True),
-        # Tabbed content (for departments and shared apps)
+        # Tabbed content (for departments)
         tab_content,
         footer
     ])
@@ -379,7 +362,11 @@ try:
     )
     def render_tab_content(active_tab):
         logger.debug(f"Rendering tab content for tab: {active_tab}")
-        return tab_contents.get(active_tab, tab_contents["tab-shared"])
+        # Default to first department if none selected or if selected tab doesn't exist
+        if not active_tab or active_tab not in tab_contents:
+            default_tab = f"tab-{departments[0].lower().replace(' ', '-')}" if departments else None
+            return tab_contents.get(default_tab, html.Div("No departments configured"))
+        return tab_contents.get(active_tab)
 
     # Callback to toggle the navbar collapse on small screens
     @dash_app.callback(

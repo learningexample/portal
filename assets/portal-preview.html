@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Enterprise AI Portal for accessing departmental AI applications">
+    <title>Enterprise AI Portal</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
+    <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
+    <!-- Custom CSS -->
+    <link href="custom.css" rel="stylesheet">
+    <style>
+        .section-header {
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.2s;
+            border-radius: 4px;
+            padding: 8px;
+        }
+        .section-header:hover {
+            background-color: rgba(0,0,0,0.05);
+        }
+        .business-area-badge {
+            z-index: 1;
+            font-weight: 500;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+            padding: 0.35em 0.6em;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .app-card {
+            height: 100%;
+            position: relative;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .app-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .section-chevron {
+            transition: transform 0.3s, background-color 0.2s;
+            font-size: 1.8rem;
+            color: white;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+            padding: 6px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <nav class="navbar navbar-expand-md navbar-light bg-light mb-4 sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand text-decoration-none" href="#">
+                <div class="row align-items-center g-0">
+                    <div class="col me-2">
+                        <img src="images/logo.svg" height="40px" alt="Enterprise Logo">
+                    </div>
+                    <div class="col ms-2">
+                        <span class="navbar-brand">Enterprise AI Portal</span>
+                    </div>
+                </div>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar-collapse">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbar-collapse">
+                <ul class="navbar-nav ms-auto">
+                    <!-- App Store navigation item -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#app-store">
+                            <i class="fa-solid fa-store me-2"></i>
+                            AI App Store
+                        </a>
+                    </li>
+                    
+                    <!-- Department navigation menu -->
+                    <li class="nav-item dropdown mx-2">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            Departments
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item" href="#business-operations">
+                                    <i class="fa-solid fa-briefcase me-2"></i>
+                                    Business Operations
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="#software-development">
+                                    <i class="fa-solid fa-code me-2"></i>
+                                    Software Development
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="#it-operations">
+                                    <i class="fa-solid fa-server me-2"></i>
+                                    IT Operations
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="#individual-productivity">
+                                    <i class="fa-solid fa-user-gear me-2"></i>
+                                    Individual Productivity
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="#hr">
+                                    <i class="fa-solid fa-users me-2"></i>
+                                    HR
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    
+                    <!-- Shared apps menu item -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#shared">
+                            <i class="fa-solid fa-share-nodes me-2"></i>
+                            Shared Apps
+                        </a>
+                    </li>
+                    
+                    <!-- User profile dropdown -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle p-0" href="#" role="button" data-bs-toggle="dropdown" style="color: transparent; background: transparent; border: none;">
+                            <img src="images/user-avatar.svg" class="rounded-circle me-2" width="30" height="30" alt="User avatar">
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <div class="dropdown-item-text">
+                                    <div class="d-flex align-items-center">
+                                        <img src="images/user-avatar.svg" class="rounded-circle me-2" width="30" height="30" alt="User avatar">
+                                        <span>John Smith</span>
+                                    </div>
+                                </div>
+                            </li>
+                            <li><div class="dropdown-header">IT Manager</div></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Profile</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-sign-out-alt me-2"></i>Sign Out</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Content -->
+    <div class="container" style="padding: 1rem;">
+        <!-- App Store section -->
+        <div class="mb-5">
+            <!-- Banner image -->
+            <img src="images/app-store-banner.svg" class="img-fluid mb-3 rounded" alt="AI App Store Banner" style="max-width: 100%;">
+            
+            <!-- Enhanced title styling for App Store -->
+            <div class="d-flex align-items-center mb-3">
+                <i class="fa-solid fa-store fa-3x me-3" style="color: #1565C0;"></i>
+                <h1 class="d-inline m-0" style="font-weight: 700; color: #1565C0; letter-spacing: 0.5px;">AI App Store</h1>
+            </div>
+            
+            <!-- Description -->
+            <p class="lead mb-3">Discover and install the latest AI applications</p>
+            
+            <!-- App Store Cards -->
+            <div class="row g-4">
+                <!-- Image Generator -->
+                <div class="col-md-4">
+                    <div class="card app-card mb-4">
+                        <div class="position-absolute top-0 end-0 m-2">
+                            <span class="badge rounded-pill business-area-badge" style="background-color: #7B1FA2; color: #FFFFFF;">
+                                <i class="fa-solid fa-robot me-1"></i>
+                                IA
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex flex-column h-100">
+                                <div class="d-flex align-items-center mb-3">
+                                    <i class="fa-solid fa-image fa-2x me-2" style="color: #039BE5;"></i>
+                                    <h5 class="card-title d-inline-block align-middle mb-0">Image Generator</h5>
+                                </div>
+                                <div class="flex-grow-1 mb-3">
+                                    <p class="card-text">Create custom images from text descriptions with AI-powered generation tools.</p>
+                                </div>
+                                <div>
+                                    <a href="#" class="btn btn-primary w-100">
+                                        <i class="fas fa-external-link-alt me-2"></i>
+                                        Launch App
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Voice Assistant -->
+                <div class="col-md-4">
+                    <div class="card app-card mb-4">
+                        <div class="position-absolute top-0 end-0 m-2">
+                            <span class="badge rounded-pill business-area-badge" style="background-color: #0D47A1; color: #FFFFFF;">
+                                <i class="fa-solid fa-globe me-1"></i>
+                                All
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex flex-column h-100">
+                                <div class="d-flex align-items-center mb-3">
+                                    <i class="fa-solid fa-microphone fa-2x me-2" style="color: #0277BD;"></i>
+                                    <h5 class="card-title d-inline-block align-middle mb-0">Voice Assistant</h5>
+                                </div>
+                                <div class="flex-grow-1 mb-3">
+                                    <p class="card-text">Voice assistant with AI capabilities for hands-free application control.</p>
+                                </div>
+                                <div>
+                                    <a href="#" class="btn btn-primary w-100">
+                                        <i class="fas fa-external-link-alt me-2"></i>
+                                        Launch App
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Text Analyzer -->
+                <div class="col-md-4">
+                    <div class="card app-card mb-4">
+                        <div class="position-absolute top-0 end-0 m-2">
+                            <span class="badge rounded-pill business-area-badge" style="background-color: #C62828; color: #FFFFFF;">
+                                <i class="fa-solid fa-bullhorn me-1"></i>
+                                Marketing
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex flex-column h-100">
+                                <div class="d-flex align-items-center mb-3">
+                                    <i class="fa-solid fa-align-left fa-2x me-2" style="color: #1E88E5;"></i>
+                                    <h5 class="card-title d-inline-block align-middle mb-0">Text Analyzer</h5>
+                                </div>
+                                <div class="flex-grow-1 mb-3">
+                                    <p class="card-text">Analyze text for sentiment, entities, and key insights.</p>
+                                </div>
+                                <div>
+                                    <a href="#" class="btn btn-primary w-100">
+                                        <i class="fas fa-external-link-alt me-2"></i>
+                                        Launch App
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Section separator -->
+            <div class="text-center mt-5 mb-3">
+                <hr style="border-top: 4px solid #1565C0; opacity: 0.8; border-radius: 2px;">
+            </div>
+        </div>
+        
+        <!-- Shared Apps Section -->
+        <div id="shared" class="mb-5">
+            <!-- Section Header -->
+            <div class="d-flex align-items-center mt-4 mb-2 section-header">
+                <i class="fa-solid fa-share-nodes fa-2x me-3" style="color: #00695C;"></i>
+                <h2 class="d-inline m-0" id="shared-title">Shared Apps</h2>
+                <i class="fas fa-chevron-down ms-3 section-chevron" style="background-color: #00695C;"></i>
+            </div>
+            <p class="lead mb-3">Cross-departmental AI tools</p>
+            
+            <!-- Shared Apps -->
+            <div class="row g-4">
+                <!-- Document AI -->
+                <div class="col-md-4">
+                    <div class="card app-card mb-4">
+                        <div class="position-absolute top-0 end-0 m-2">
+                            <span class="badge rounded-pill business-area-badge" style="background-color: #0D47A1; color: #FFFFFF;">
+                                <i class="fa-solid fa-globe me-1"></i>
+                                All
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex flex-column h-100">
+                                <div class="d-flex align-items-center mb-3">
+                                    <i class="fa-solid fa-file-alt fa-2x me-2" style="color: #00ACC1;"></i>
+                                    <h5 class="card-title d-inline-block align-middle mb-0">Document AI</h5>
+                                </div>
+                                <div class="flex-grow-1 mb-3">
+                                    <p class="card-text">Extract and analyze information from documents with AI.</p>
+                                </div>
+                                <div>
+                                    <a href="#" class="btn btn-primary w-100">
+                                        <i class="fas fa-external-link-alt me-2"></i>
+                                        Launch App
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Chatbot Assistant -->
+                <div class="col-md-4">
+                    <div class="card app-card mb-4">
+                        <div class="position-absolute top-0 end-0 m-2">
+                            <span class="badge rounded-pill business-area-badge" style="background-color: #00695C; color: #FFFFFF;">
+                                <i class="fa-solid fa-shuffle me-1"></i>
+                                Cross-NYLI
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex flex-column h-100">
+                                <div class="d-flex align-items-center mb-3">
+                                    <i class="fa-solid fa-comment-dots fa-2x me-2" style="color: #00838F;"></i>
+                                    <h5 class="card-title d-inline-block align-middle mb-0">Chatbot Assistant</h5>
+                                </div>
+                                <div class="flex-grow-1 mb-3">
+                                    <p class="card-text">An AI chatbot that can answer questions about your business.</p>
+                                </div>
+                                <div>
+                                    <a href="#" class="btn btn-primary w-100">
+                                        <i class="fas fa-external-link-alt me-2"></i>
+                                        Launch App
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Data Visualization -->
+                <div class="col-md-4">
+                    <div class="card app-card mb-4">
+                        <div class="position-absolute top-0 end-0 m-2">
+                            <span class="badge rounded-pill business-area-badge" style="background-color: #1B5E20; color: #FFFFFF;">
+                                <i class="fa-solid fa-arrow-right me-1"></i>
+                                Direct
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex flex-column h-100">
+                                <div class="d-flex align-items-center mb-3">
+                                    <i class="fa-solid fa-chart-pie fa-2x me-2" style="color: #00695C;"></i>
+                                    <h5 class="card-title d-inline-block align-middle mb-0">Data Visualization</h5>
+                                </div>
+                                <div class="flex-grow-1 mb-3">
+                                    <p class="card-text">Interactive data visualization with AI-powered insights.</p>
+                                </div>
+                                <div>
+                                    <a href="#" class="btn btn-primary w-100">
+                                        <i class="fas fa-external-link-alt me-2"></i>
+                                        Launch App
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Section separator -->
+            <div class="text-center mt-5 mb-3">
+                <hr style="border-top: 4px solid #00695C; opacity: 0.8; border-radius: 2px;">
+            </div>
+        </div>
+        
+        <!-- Business Operations Section -->
+        <div id="business-operations" class="mb-5">
+            <div class="d-flex align-items-center mt-4 mb-2 section-header">
+                <i class="fa-solid fa-briefcase fa-2x me-3" style="color: #2E7D32;"></i>
+                <h2 class="d-inline m-0" id="business-operations-title">Business Operations AI Applications</h2>
+                <i class="fas fa-chevron-down ms-3 section-chevron" style="background-color: #2E7D32; transform: rotate(-90deg);"></i>
+            </div>
+            <p class="lead mb-3">AI tools for optimizing business processes and operations</p>
+            
+            <!-- Content is initially hidden in collapsible section -->
+        </div>
+        
+        <!-- Software Development Section -->
+        <div id="software-development" class="mb-5">
+            <div class="d-flex align-items-center mt-4 mb-2 section-header">
+                <i class="fa-solid fa-code fa-2x me-3" style="color: #C62828;"></i>
+                <h2 class="d-inline m-0" id="software-development-title">Software Development AI Applications</h2>
+                <i class="fas fa-chevron-down ms-3 section-chevron" style="background-color: #C62828; transform: rotate(-90deg);"></i>
+            </div>
+            <p class="lead mb-3">AI-powered tools for software developers</p>
+            
+            <!-- Content is initially hidden in collapsible section -->
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <footer class="mt-5 bg-light">
+        <div class="container-fluid py-3">
+            <hr>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="d-flex align-items-center mb-2">
+                        <img src="images/logo.svg" height="30px" class="me-2" alt="Enterprise Logo">
+                        <span class="fw-bold">Enterprise</span>
+                    </div>
+                    <p class="text-muted small">© 2025 All rights reserved.</p>
+                </div>
+                <div class="col-md-6 d-flex align-items-center">
+                    <div class="d-flex justify-content-end w-100">
+                        <a href="#" class="btn btn-link text-dark me-2">
+                            <i class="fab fa-github"></i>
+                        </a>
+                        <a href="#" class="btn btn-link text-dark me-2">
+                            <i class="fab fa-linkedin"></i>
+                        </a>
+                        <a href="#" class="btn btn-link text-dark me-2">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JS for section toggling -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set up section toggle handlers
+            const sectionHeaders = document.querySelectorAll('.section-header');
+            sectionHeaders.forEach(header => {
+                header.addEventListener('click', function() {
+                    const sectionId = this.closest('div[id]').id;
+                    const chevron = this.querySelector('.section-chevron');
+                    
+                    // Simple toggle just for demo
+                    if (chevron.style.transform === 'rotate(-90deg)') {
+                        chevron.style.transform = 'rotate(0deg)';
+                        // In a real app, we'd show the content here
+                        console.log(`Opening section ${sectionId}`);
+                    } else {
+                        chevron.style.transform = 'rotate(-90deg)';
+                        // In a real app, we'd hide the content here
+                        console.log(`Closing section ${sectionId}`);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

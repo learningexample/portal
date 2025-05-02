@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Enterprise AI Portal Management Script
-A GUI tool to manage the Enterprise AI Portal with tabs for shared apps and departments
+A GUI tool to manage the Enterprise AI Portal with tabs for departments
 """
 
 import os
@@ -65,11 +65,6 @@ class PortalManager:
         self.management_tab = ttk.Frame(self.notebook)
         self.notebook.add(self.management_tab, text="Management")
         self.setup_management_tab()
-        
-        # Create tab for shared apps
-        self.shared_tab = ttk.Frame(self.notebook)
-        self.notebook.add(self.shared_tab, text="Shared Apps")
-        self.setup_apps_tab(self.shared_tab, "shared")
         
         # Create tabs for each department
         self.department_tabs = {}
@@ -169,9 +164,7 @@ class PortalManager:
         
         # Get apps for this category
         apps = []
-        if category_name.lower() == "shared":
-            apps = self.config.get('shared', {}).get('apps', [])
-        elif category_name.lower() == "app store":
+        if category_name.lower() == "app store":
             apps = self.config.get('app_store', {}).get('apps', [])
         else:
             # Find the department in the config
@@ -357,10 +350,8 @@ class PortalManager:
                        variable=portal_var, value="portal-1").pack(anchor=tk.W, padx=20, pady=5)
         ttk.Radiobutton(portal_window, text="Tabbed Portal", 
                        variable=portal_var, value="portal-2").pack(anchor=tk.W, padx=20, pady=5)
-        ttk.Radiobutton(portal_window, text="Section Portal", 
-                       variable=portal_var, value="portal-3").pack(anchor=tk.W, padx=20, pady=5)
-        ttk.Radiobutton(portal_window, text="App Store Style", 
-                       variable=portal_var, value="portal-4").pack(anchor=tk.W, padx=20, pady=5)
+        ttk.Radiobutton(portal_window, text="App Store (Collapsible Sections)", 
+                       variable=portal_var, value="AppStore").pack(anchor=tk.W, padx=20, pady=5)
         
         # Button frame
         btn_frame = ttk.Frame(portal_window)
@@ -413,10 +404,8 @@ class PortalManager:
                            variable=portal_var, value="portal-1").pack(anchor=tk.W, padx=20, pady=5)
             ttk.Radiobutton(portal_window, text="Tabbed Portal", 
                            variable=portal_var, value="portal-2").pack(anchor=tk.W, padx=20, pady=5)
-            ttk.Radiobutton(portal_window, text="Section Portal", 
-                           variable=portal_var, value="portal-3").pack(anchor=tk.W, padx=20, pady=5)
-            ttk.Radiobutton(portal_window, text="App Store Style", 
-                           variable=portal_var, value="portal-4").pack(anchor=tk.W, padx=20, pady=5)
+            ttk.Radiobutton(portal_window, text="App Store (Collapsible Sections)", 
+                           variable=portal_var, value="AppStore").pack(anchor=tk.W, padx=20, pady=5)
             
             # Button frame
             btn_frame = ttk.Frame(portal_window)
