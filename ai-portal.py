@@ -1,28 +1,35 @@
 """
 Enterprise AI Portal - Main Portal Version (ai-portal.py)
 
-COPILOT INSTRUCTIONS:
-- This is the main portal with root URL path
-- Uses Flask server exposed as 'server' for Gunicorn integration
-- Gunicorn used in production with multiple workers
-- Dash design features collapsible sections with jQuery
-- Default path is /
+A dashboard application that serves as a central hub for AI applications.
+Uses Flask server exposed as 'server' for Gunicorn integration in production.
 """
 
 import dash
-from dash import dcc, html, Input, Output, State, ClientsideFunction, callback_context, ALL
+from dash import dcc, html, Input, Output, State, callback_context, ALL
 import dash_bootstrap_components as dbc
 import yaml
 import os
 import json
 import sys
 import gc
+import threading
 from utils.performance_utils import memory_cache, measure_execution_time
 from flask import request
 
 # Load configuration from YAML file
 @memory_cache(ttl_seconds=600)  # Cache config for 10 minutes
 def load_config():
+    """
+    Load and validate configuration from ai-portal.yaml.
+    
+    Returns:
+        dict: Configuration dictionary with fallback values for missing sections
+        
+    Notes:
+        - Cached for 10 minutes to improve performance
+        - Validates required sections and provides defaults if missing
+    """
     config_path = os.path.join(os.path.dirname(__file__), 'ai-portal.yaml')
     try:
         with open(config_path, 'r') as file:
@@ -32,13 +39,17 @@ def load_config():
         required_sections = ['company', 'departments']
         missing_sections = [section for section in required_sections if section not in config]
         
-        if (missing_sections):
+        if missing_sections:
             print(f"Warning: Missing required sections in ai-portal.yaml: {', '.join(missing_sections)}")
             print("Using default values for missing sections.")
             
             # Add default values for missing sections
             if 'company' not in config:
-                config['company'] = {'name': 'Enterprise', 'logo_url': 'assets/images/logo.svg', 'theme_color': '#4a6fa5'}
+                config['company'] = {
+                    'name': 'Enterprise', 
+                    'logo_url': 'assets/images/logo.svg', 
+                    'theme_color': '#4a6fa5'
+                }
             if 'departments' not in config:
                 config['departments'] = []
                 
@@ -116,7 +127,7 @@ dash_app = dash.Dash(__name__,
                 ],
                 title=app_title,
                 update_title=f"Loading {app_title}...",
-                url_base_pathname="/",  # Root URL path
+                routes_pathname_prefix="/",  # Use routes_pathname_prefix instead of url_base_pathname
                 suppress_callback_exceptions=True,  # Add this to suppress callback exceptions
                 assets_folder="assets",  # Explicitly set assets folder
                 include_assets_files=True,
@@ -126,8 +137,7 @@ dash_app = dash.Dash(__name__,
                 pages_folder="",
                 # Important: These settings configure Dash to NOT use WebSockets
                 # and to use HTTP polling for updates instead
-                requests_pathname_prefix="/",
-                routes_pathname_prefix="/",
+                # Remove url_base_pathname and just use routes_pathname_prefix
                 serve_locally=True)
 
 # Add favicon - explicitly set to override Dash default
@@ -178,7 +188,7 @@ def get_apps():
     global _apps_cache
     
     # Return cached data if available
-    if _apps_cache:
+    if (_apps_cache):
         return _apps_cache
         
     apps = {}
@@ -283,7 +293,8 @@ def create_app_cards(dept):
                 dbc.Button([
                     html.I(className="fas fa-external-link-alt me-2"),
                     "Launch App"
-                ], color="primary", href=app['url'], className="me-2 flex-grow-1", target="_blank")
+                ], color="primary", href=app['url'], className="me-2 flex-grow-1", target="_blank",
+                   style={"borderRadius": "var(--border-radius)", "fontWeight": "500", "boxShadow": "0 2px 4px rgba(0,0,0,0.1)"})
             )
         else:
             # No URL - show "Coming Soon" button with hourglass icon
@@ -291,7 +302,8 @@ def create_app_cards(dept):
                 dbc.Button([
                     html.I(className="fas fa-hourglass-half me-2"),
                     "Coming Soon"
-                ], color="secondary", className="me-2 flex-grow-1", disabled=True)
+                ], color="secondary", className="me-2 flex-grow-1", disabled=True,
+                   style={"borderRadius": "var(--border-radius)", "fontWeight": "500", "opacity": "0.65"})
             )
         
         # Add Contact button - can be configured to use contact_url or contact_email
@@ -301,7 +313,8 @@ def create_app_cards(dept):
                 dbc.Button([
                     html.I(className="fas fa-comment me-2"),
                     "Contact"
-                ], color="info", href=contact_href, className="flex-grow-1", target="_blank")
+                ], color="info", href=contact_href, className="flex-grow-1", target="_blank",
+                   style={"borderRadius": "var(--border-radius)", "fontWeight": "500", "boxShadow": "0 2px 4px rgba(0,0,0,0.1)"})
             )
         
         card = dbc.Card([
@@ -311,12 +324,12 @@ def create_app_cards(dept):
                     # Header section
                     html.Div([
                         html.I(className=f"{icon} fa-2x me-2", style={"color": icon_color}),
-                        html.H5(app['name'], className="card-title d-inline-block align-middle mb-0")
+                        html.H5(app['name'], className="card-title d-inline-block align-middle mb-0", style={"fontWeight": "600"})
                     ], className="d-flex align-items-center mb-3"),
                     
                     # Description section - will stretch to fill available space
                     html.Div([
-                        html.P(app['description'], className="card-text")
+                        html.P(app['description'], className="card-text", style={"fontSize": "0.95rem", "lineHeight": "1.5"})
                     ], className="flex-grow-1 mb-3"),
                     
                     # Button section - always at the bottom
@@ -326,7 +339,13 @@ def create_app_cards(dept):
                     ])
                 ], className="d-flex flex-column h-100") # Make the div take full height of card
             ])
-        ], className="mb-4 h-100")
+        ], className="mb-4 h-100 shadow-sm", 
+           style={
+               "transition": "var(--transition)",
+               "borderRadius": "var(--border-radius)",
+               "overflow": "hidden", 
+               "border": "1px solid #e9ecef"
+           })
         cards.append(card)
     
     # Store in cache
@@ -810,7 +829,6 @@ for dept in categories:
     create_callback_for_dept()
 
 # Memory optimization: Run garbage collection periodically
-import threading
 def _periodic_gc():
     gc.collect()
     # Schedule next cleanup in 5 minutes

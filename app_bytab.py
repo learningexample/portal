@@ -148,6 +148,47 @@ try:
             # Set icon color based on app name or fall back to department color
             icon_color = app_icon_colors.get(app['name'], icon_colors.get(dept, theme_color))
             
+            # Check if the app has a valid URL and contact information
+            has_url = 'url' in app and app.get('url') and app.get('url').strip()
+            has_contact = app.get('contact_url') or app.get('contact') or app.get('contact_email') or app.get('email')
+            
+            # Create the button(s) based on what information is available
+            buttons = []
+            
+            if has_url:
+                buttons.append(
+                    dbc.Button([
+                        html.I(className="fas fa-external-link-alt me-2"),
+                        "Launch App"
+                    ], color="primary", href=app.get('url', app.get('contact', '#')), className="me-2 flex-grow-1", target="_blank",
+                       style={"borderRadius": "var(--border-radius)", "fontWeight": "500", "boxShadow": "0 2px 4px rgba(0,0,0,0.1)"})
+                )
+            else:
+                # Show Coming Soon button with hourglass icon
+                buttons.append(
+                    dbc.Button([
+                        html.I(className="fas fa-hourglass-half me-2"),
+                        "Coming Soon"
+                    ], color="secondary", className="me-2 flex-grow-1", disabled=True,
+                       style={"borderRadius": "var(--border-radius)", "fontWeight": "500", "opacity": "0.65"})
+                )
+                
+            # Add Contact button if contact info is available
+            if has_contact:
+                contact_href = app.get('contact', '#')
+                if contact_href.startswith(('http://', 'https://')):
+                    pass
+                elif '@' in contact_href:
+                    contact_href = f"mailto:{contact_href}"
+                
+                buttons.append(
+                    dbc.Button([
+                        html.I(className="fas fa-comment me-2"),
+                        "Contact"
+                    ], color="info", href=contact_href, className="flex-grow-1", target="_blank",
+                       style={"borderRadius": "var(--border-radius)", "fontWeight": "500", "boxShadow": "0 2px 4px rgba(0,0,0,0.1)"})
+                )
+            
             card = dbc.Card([
                 dbc.CardBody([
                     # Card content container with flex display
@@ -155,25 +196,28 @@ try:
                         # Header section
                         html.Div([
                             html.I(className=f"{icon} fa-2x me-2", style={"color": icon_color}),
-                            html.H5(app['name'], className="card-title d-inline-block align-middle mb-0")
+                            html.H5(app['name'], className="card-title d-inline-block align-middle mb-0", style={"fontWeight": "600"})
                         ], className="d-flex align-items-center mb-3"),
                         
                         # Description section - will stretch to fill available space
                         html.Div([
-                            html.P(app['description'], className="card-text")
+                            html.P(app['description'], className="card-text", style={"fontSize": "0.95rem", "lineHeight": "1.5"})
                         ], className="flex-grow-1 mb-3"),
                         
                         # Button section - always at the bottom
                         html.Div([
-                            # Use app.get('url') and check if it exists, fall back to contact or '#' if no URL
-                            dbc.Button([
-                                html.I(className="fas fa-external-link-alt me-2"),
-                                "Launch App"
-                            ], color="primary", href=app.get('url', app.get('contact', '#')), className="w-100", target="_blank")
+                            # Display buttons in a row
+                            html.Div(buttons, className="d-flex")
                         ])
                     ], className="d-flex flex-column h-100") # Make the div take full height of card
                 ])
-            ], className="mb-4 h-100")
+            ], className="mb-4 h-100 shadow-sm", 
+               style={
+                   "transition": "var(--transition)",
+                   "borderRadius": "var(--border-radius)",
+                   "overflow": "hidden", 
+                   "border": "1px solid #e9ecef"
+               })
             cards.append(dbc.Col(card, md=4))
         return cards
 
@@ -210,7 +254,9 @@ try:
                     dbc.Row(
                         [
                             dbc.Col(html.Img(src=company_info.get('logo_url', ''), height="40px"), className="me-2"),
-                            dbc.Col(dbc.NavbarBrand(company_info.get('name', portal_title), className="ms-2")),
+                            dbc.Col(dbc.NavbarBrand(company_info.get('name', portal_title), 
+                                                  className="ms-2", 
+                                                  style={"fontWeight": "600", "color": "#1565C0"})),
                         ],
                         align="center",
                         className="g-0",
@@ -218,7 +264,7 @@ try:
                     href="#",
                     style={"textDecoration": "none"},
                 ),
-                dbc.NavbarToggler(id="navbar-toggler"),
+                dbc.NavbarToggler(id="navbar-toggler", style={"border": "none", "boxShadow": "none"}),
                 dbc.Collapse(
                     dbc.Nav(
                         [
@@ -226,10 +272,34 @@ try:
                             dbc.NavItem(dbc.NavLink([
                                 html.I(className=f"{app_store_icon} me-2"),
                                 app_store_title
-                            ], href="#")),
+                            ], href="#", 
+                               style={"transition": "var(--transition)", "borderRadius": "var(--border-radius)"})),
                             
                             # User profile dropdown
-                            user_dropdown,
+                            dbc.DropdownMenu(
+                                children=[
+                                    dbc.DropdownMenuItem([
+                                        html.Div([
+                                            html.Img(src=user_info.get('avatar_url', ''), className="rounded-circle me-2", width=30, height=30),
+                                            html.Span(user_info.get('name', 'User')),
+                                        ], className="d-flex align-items-center")
+                                    ], header=True),
+                                    dbc.DropdownMenuItem(user_info.get('role', 'User'), header=True),
+                                    dbc.DropdownMenuItem(divider=True),
+                                    dbc.DropdownMenuItem([html.I(className="fas fa-user me-2"), "Profile"], 
+                                                       style={"transition": "background-color 0.2s ease", "padding": "0.6rem 1rem"}),
+                                    dbc.DropdownMenuItem([html.I(className="fas fa-cog me-2"), "Settings"],
+                                                       style={"transition": "background-color 0.2s ease", "padding": "0.6rem 1rem"}),
+                                    dbc.DropdownMenuItem(divider=True),
+                                    dbc.DropdownMenuItem([html.I(className="fas fa-sign-out-alt me-2"), "Sign Out"],
+                                                       style={"transition": "background-color 0.2s ease", "padding": "0.6rem 1rem"}),
+                                ],
+                                nav=True,
+                                in_navbar=True,
+                                label=html.Img(src=user_info.get('avatar_url', 'assets/images/user-avatar.svg'), className="rounded-circle", width=36, height=36),
+                                toggle_style={"padding": "0", "border": "none"},
+                                align_end=True,
+                            ),
                         ],
                         className="ms-auto",
                         navbar=True,
@@ -240,10 +310,53 @@ try:
             ],
             fluid=True,
         ),
-        color="light",
+        color="white",
         dark=False,
-        className="mb-4",
+        className="mb-4 shadow-sm",
         sticky="top",
+        style={"boxShadow": "var(--header-shadow)", "borderBottom": "1px solid #f0f0f0"}
+    )
+    
+    # Footer with company information
+    footer = html.Footer(
+        dbc.Container(
+            [
+                html.Hr(style={"opacity": "0.15"}),
+                dbc.Row([
+                    dbc.Col([
+                        html.Div([
+                            html.Img(src=company_info.get('logo_url', ''), height="32px", className="me-2"),
+                            html.Span(company_info.get('name', portal_title), 
+                                     className="fw-bold", 
+                                     style={"color": "#1565C0"})
+                        ], className="d-flex align-items-center mb-3"),
+                        html.P(f"© {company_info.get('copyright_year', '2025')} All rights reserved.", 
+                              className="text-muted small", 
+                              style={"fontSize": "0.85rem", "margin": "0"})
+                    ], md=6),
+                    dbc.Col([
+                        html.Div([
+                            dbc.Button([html.I(className="fab fa-github fa-lg")], 
+                                      color="link", 
+                                      className="text-dark me-3 p-0",
+                                      style={"transition": "transform 0.2s", ":hover": {"transform": "translateY(-2px)"}}),
+                            dbc.Button([html.I(className="fab fa-linkedin fa-lg")], 
+                                      color="link", 
+                                      className="text-dark me-3 p-0",
+                                      style={"transition": "transform 0.2s", ":hover": {"transform": "translateY(-2px)"}}),
+                            dbc.Button([html.I(className="fab fa-twitter fa-lg")], 
+                                      color="link", 
+                                      className="text-dark p-0",
+                                      style={"transition": "transform 0.2s", ":hover": {"transform": "translateY(-2px)"}})
+                        ], className="d-flex justify-content-end")
+                    ], md=6, className="d-flex align-items-center justify-content-end")
+                ])
+            ],
+            fluid=True,
+            className="py-4"
+        ),
+        className="mt-5 bg-light",
+        style={"borderTop": "1px solid #e9ecef", "boxShadow": "0 -1px 3px rgba(15, 23, 42, 0.06)"}
     )
 
     # ----- SIMPLIFIED TABS IMPLEMENTATION -----
@@ -281,13 +394,23 @@ try:
         dbc.Tabs([
             *[
                 dbc.Tab(
-                    label=f"📂 {dept}", 
-                    tab_id=f"tab-{dept.lower().replace(' ', '-')}", 
-                    label_style={"color": icon_colors.get(dept, theme_color), "fontSize": "1.1rem"}  # Increased font size
+                    label=html.Div([
+                        html.I(className=f"{next((d.get('icon', 'fa-solid fa-folder') for d in config.get('departments', []) if d['name'] == dept), 'fa-solid fa-folder')} me-2"),
+                        dept
+                    ]), 
+                    tab_id=f"tab-{dept.lower().replace(' ', '-')}",
+                    label_style={
+                        "color": icon_colors.get(dept, theme_color),
+                        "fontSize": "1.1rem",
+                        "fontWeight": "500",
+                        "padding": "0.75rem 1rem",
+                        "borderRadius": "0",
+                        "transition": "var(--transition)"
+                    }
                 ) for dept in departments
             ]
-        ], id="tabs", active_tab=default_tab),
-        html.Div(id="tab-content", className="pt-3")
+        ], id="tabs", active_tab=default_tab, className="nav-tabs"),
+        html.Div(id="tab-content", className="pt-4")
     ], className="mt-4")
 
     # Main tab content layout

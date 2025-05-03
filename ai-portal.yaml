@@ -1,22 +1,28 @@
-# AI Portal Configuration
+# Enterprise AI Portal Configuration
+# ---------------------------------
+# This file configures the AI Portal application
 
 title: "Enterprise AI Portal"
 description: "Central portal for departmental AI applications"
 
 # Company branding
+# ----------------
 company:
   name: "TechCorp Solutions"
   logo_url: "assets/images/logo.svg"
   theme_color: "#4a6fa5"
 
 # User information
+# ---------------
 user:
   name: "John Smith"
   role: "AI Solutions Manager"
   avatar_url: "assets/images/user-avatar.svg"
   department: "IT Operations"
 
-# Department header colors
+# Visual styling
+# -------------
+# Department header colors for visual identification
 department_colors:
   Internal Tools: "#1976D2"  # Blue
   License Required: "#F57C00"  # Orange
@@ -24,6 +30,7 @@ department_colors:
   default: "#4a6fa5"  # Default fallback color
 
 # AI App Store configuration
+# -------------------------
 app_store:
   title: "AI Portal"
   icon: "fa-solid fa-store"
@@ -32,6 +39,7 @@ app_store:
   apps: []
 
 # Departments configuration
+# ------------------------
 departments:
   - name: "Internal Tools"
     icon: "fa-solid fa-tools"
@@ -56,12 +64,12 @@ departments:
     apps:
       - name: "ChatGPT Enterprise"
         url: "/chatgpt-enterprise"
-        icon: "fa-solid fa-robot" # Best available icon for ChatGPT in Font Awesome 6.4.0
+        icon: "fa-solid fa-robot"
         description: "Enterprise-grade AI assistant with advanced capabilities"
 
       - name: "Microsoft Copilot"
         url: "/microsoft-copilot"
-        icon: "fa-solid fa-circle-nodes" # Better representation of Microsoft Copilot
+        icon: "fa-solid fa-circle-nodes"
         description: "AI assistant integrated with Microsoft products"
 
       - name: "Writer"
