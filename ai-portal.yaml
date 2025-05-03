@@ -1,0 +1,70 @@
+# AI Portal Configuration
+
+title: "Enterprise AI Portal"
+description: "Central portal for departmental AI applications"
+
+# Company branding
+company:
+  name: "TechCorp Solutions"
+  logo_url: "assets/images/logo.svg"
+  theme_color: "#4a6fa5"
+
+# User information
+user:
+  name: "John Smith"
+  role: "AI Solutions Manager"
+  avatar_url: "assets/images/user-avatar.svg"
+  department: "IT Operations"
+
+# Department header colors
+department_colors:
+  Internal Tools: "#1976D2"  # Blue
+  License Required: "#F57C00"  # Orange
+  App Store: "#1565C0"  # Blue
+  default: "#4a6fa5"  # Default fallback color
+
+# AI App Store configuration
+app_store:
+  title: "AI Portal"
+  icon: "fa-solid fa-store"
+  description: "Your one-stop marketplace for enterprise AI solutions. Discover, deploy, and manage pre-vetted AI applications tailored for your business needs."
+  banner_image: "assets/images/app-store-banner.svg"
+  apps: []
+
+# Departments configuration
+departments:
+  - name: "Internal Tools"
+    icon: "fa-solid fa-tools"
+    description: "Tools for internal use only"
+    apps:
+      - name: "Chat with Documents"
+        url: "/chat-with-documents"
+        icon: "fa-solid fa-comments"
+        description: "Chat with your documents using AI assistance"
+
+      - name: "Compare Documents"
+        icon: "fa-solid fa-file-contract"
+        description: "Compare two documents and identify differences"
+
+      - name: "RFP Assistant"
+        icon: "fa-solid fa-file-signature"
+        description: "AI-powered tool to help prepare and analyze Request for Proposals"
+         
+  - name: "License Required"
+    icon: "fa-solid fa-key"
+    description: "These tools require a valid license to use"
+    apps:
+      - name: "ChatGPT Enterprise"
+        url: "/chatgpt-enterprise"
+        icon: "fa-solid fa-robot" # Best available icon for ChatGPT in Font Awesome 6.4.0
+        description: "Enterprise-grade AI assistant with advanced capabilities"
+
+      - name: "Microsoft Copilot"
+        url: "/microsoft-copilot"
+        icon: "fa-solid fa-circle-nodes" # Better representation of Microsoft Copilot
+        description: "AI assistant integrated with Microsoft products"
+
+      - name: "Writer"
+        url: "/writer"
+        icon: "fa-solid fa-pen-fancy"
+        description: "Professional AI writing assistant for creating high-quality content"

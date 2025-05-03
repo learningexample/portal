@@ -17,15 +17,15 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "apachectl", "-t"]
-      interval: 30s
+      interval: 60s       # Increased from 30s to 60s
       timeout: 10s
       retries: 3
       start_period: 15s
     deploy:
       resources:
         limits:
-          cpus: '0.5'
-          memory: 256M
+          cpus: '0.3'     # Reduced from 0.5 to 0.3
+          memory: 128M    # Reduced from 256M to 128M
     command: >
       sh -c "
         sed -i '/LoadModule proxy_module/s/^#//g' /usr/local/apache2/conf/httpd.conf;
@@ -45,20 +45,21 @@ services:
       - ./config.yaml:/app/config.yaml:ro
     environment:
       - PORT=8050
+      - WORKERS_PER_CORE=1  # New: reduced workers per core
     networks:
       - portal-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "--silent", "--fail", "http://localhost:8050/_dash-layout"]
-      interval: 30s
+      interval: 60s       # Increased from 30s to 60s
       timeout: 10s
       retries: 3
       start_period: 15s
     deploy:
       resources:
         limits:
-          cpus: '1.0' 
-          memory: 512M
+          cpus: '0.5'     # Reduced from 1.0 to 0.5
+          memory: 256M    # Reduced from 512M to 256M
   
   ai-portal-tabbed:
     build: .
@@ -70,20 +71,21 @@ services:
     environment:
       - PORT=8050
       - PORTAL_VERSION=tabbed
+      - WORKERS_PER_CORE=1  # New: reduced workers per core
     networks:
       - portal-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "--silent", "--fail", "http://localhost:8050/_dash-layout"]
-      interval: 30s
+      interval: 60s       # Increased from 30s to 60s
       timeout: 10s
       retries: 3
       start_period: 15s
     deploy:
       resources:
         limits:
-          cpus: '1.0'
-          memory: 512M
+          cpus: '0.5'     # Reduced from 1.0 to 0.5
+          memory: 256M    # Reduced from 512M to 256M
 
   ai-portal-bysection:
     build: .
@@ -95,20 +97,21 @@ services:
     environment:
       - PORT=8050
       - PORTAL_VERSION=bysection
+      - WORKERS_PER_CORE=1  # New: reduced workers per core
     networks:
       - portal-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "--silent", "--fail", "http://localhost:8050/_dash-layout"]
-      interval: 30s
+      interval: 60s       # Increased from 30s to 60s
       timeout: 10s
       retries: 3
       start_period: 15s
     deploy:
       resources:
         limits:
-          cpus: '1.0'
-          memory: 512M
+          cpus: '0.5'     # Reduced from 1.0 to 0.5
+          memory: 256M    # Reduced from 512M to 256M
 
   ai-portal-appstore:
     build: .
@@ -120,20 +123,21 @@ services:
     environment:
       - PORT=8050
       - PORTAL_VERSION=appstore
+      - WORKERS_PER_CORE=1  # New: reduced workers per core
     networks:
       - portal-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "--silent", "--fail", "http://localhost:8050/_dash-layout"]
-      interval: 30s
+      interval: 60s       # Increased from 30s to 60s
       timeout: 10s
       retries: 3
       start_period: 15s
     deploy:
       resources:
         limits:
-          cpus: '1.0'
-          memory: 512M
+          cpus: '0.5'     # Reduced from 1.0 to 0.5
+          memory: 256M    # Reduced from 512M to 256M
 
 networks:
   portal-network:

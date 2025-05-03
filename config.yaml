@@ -85,7 +85,6 @@ departments:
     description: "Tools for optimizing business processes and financial operations"
     apps:
       - name: "Financial Analysis"
-        url: "/finance/analysis"
         contact: "mailto:financial-support@example.com"
         icon: "fa-solid fa-chart-line"
         description: "Analyze financial data and create forecasts using AI models trained on historical business data."

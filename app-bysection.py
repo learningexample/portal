@@ -1,24 +1,30 @@
 """
 Enterprise AI Portal - Collapsible Sections Version (app-bysection.py)
 
-COPILOT INSTRUCTIONS:
-- This is the collapsible sections portal version
-- Uses Flask server exposed as 'server' for Gunicorn integration
-- Gunicorn used in production with multiple workers
-- Dash design features collapsible sections with jQuery
-- Default path is /AppStore/
+A Dash-based web application that provides a centralized portal for accessing
+various AI applications organized by department/category. Features collapsible
+sections and responsive design.
+
+Uses Flask server exposed as 'server' for Gunicorn integration
+with multiple workers in production.
 """
 
-import dash
-from dash import dcc, html, Input, Output, State, ClientsideFunction, callback_context, ALL
-import dash_bootstrap_components as dbc
-import yaml
 import os
-import json
 import sys
+import json
+import yaml
+import dash
+from dash import dcc, html, Input, Output, State, callback_context, ALL
+import dash_bootstrap_components as dbc
 
-# Load configuration from YAML file
+
+# --- Configuration Management ---
+
 def load_config():
+    """
+    Load configuration from YAML file with fallbacks for missing sections.
+    Returns a dictionary with configuration settings.
+    """
     config_path = os.path.join(os.path.dirname(__file__), 'config.yaml')
     try:
         with open(config_path, 'r') as file:
@@ -28,7 +34,7 @@ def load_config():
         required_sections = ['company', 'departments']
         missing_sections = [section for section in required_sections if section not in config]
         
-        if (missing_sections):
+        if missing_sections:
             print(f"Warning: Missing required sections in config.yaml: {', '.join(missing_sections)}")
             print("Using default values for missing sections.")
             
@@ -179,11 +185,32 @@ app_icon_colors = {
 
 # Helper functions for handling contact information
 def has_contact_info(app):
-    """Check if the app has any contact information."""
+    """
+    Check if an app has any type of contact information.
+    
+    Args:
+        app (dict): The application configuration dictionary
+        
+    Returns:
+        bool: True if any contact information exists, False otherwise
+    """
     return app.get('contact_url') or app.get('contact') or app.get('contact_email') or app.get('email')
 
 def get_contact_href(app):
-    """Get the appropriate href value for the contact button."""
+    """
+    Get the appropriate href value for the contact button.
+    
+    Handles different types of contact information with proper formatting:
+    - URLs are used directly
+    - Email addresses get mailto: prefix
+    - Other contact info is used as-is
+    
+    Args:
+        app (dict): The application configuration dictionary
+        
+    Returns:
+        str: Formatted contact href value for the button
+    """
     # First check for the combined contact field
     if app.get('contact'):
         if app.get('contact').startswith(('http://', 'https://', 'mailto:')):
@@ -204,6 +231,15 @@ def get_contact_href(app):
 
 # Create the app cards with colorful icons
 def create_app_cards(dept):
+    """
+    Create application cards for a specific department.
+    
+    Args:
+        dept (str): Department name to generate cards for
+        
+    Returns:
+        list: List of dbc.Card components for the specified department
+    """
     cards = []
     for app in apps.get(dept, []):
         icon = app.get('icon', 'fa-solid fa-cube')  # Default icon if none specified
@@ -261,7 +297,7 @@ def create_app_cards(dept):
                 "backgroundColor": badge_style['bg'], 
                 "color": badge_style['color'], 
                 "fontWeight": "500",
-                "boxShadow": "0 2px 4px rgba(0,0,0,0.15)",
+                "boxShadow": "0 2px 5px rgba(0,0,0,0.15)",
                 "padding": "0.35em 0.6em",
                 "fontSize": "0.8rem",
                 "display": "flex",
@@ -270,39 +306,52 @@ def create_app_cards(dept):
             }
         )
         
-        # Determine if we should show Launch App button or Contact Me button
-        has_url = 'url' in app and app['url'] and app['url'].strip()
+        # Check if the app has a valid URL and contact information
+        has_url = 'url' in app and app.get('url') and app.get('url').strip()
         has_contact = has_contact_info(app)
         
         # Create the button(s) based on what information is available
         buttons = []
+        
+        # Add Launch App button if URL is available, otherwise show a "Coming Soon" greyed out button
         if has_url:
             buttons.append(
                 dbc.Button([
                     html.I(className="fas fa-external-link-alt me-2"),
                     "Launch App"
-                ], color="primary", href=app['url'], className="me-2 flex-grow-1", target="_blank")
+                ], color="primary", href=app['url'], className="me-2 flex-grow-1", target="_blank", 
+                   style={"borderRadius": "6px", "fontWeight": "500", "boxShadow": "0 2px 4px rgba(0,0,0,0.1)"})
+            )
+        else:
+            buttons.append(
+                dbc.Button([
+                    html.I(className="fas fa-hourglass-half me-2"),
+                    "Coming Soon"
+                ], color="secondary", disabled=True, className="me-2 flex-grow-1",
+                   style={"borderRadius": "6px", "fontWeight": "500", "opacity": "0.65"})
             )
         
-        # Add Contact button - can be configured to use contact_url or contact_email
+        # Always add Contact button - active if contact info is available, disabled if not
         if has_contact:
             contact_href = get_contact_href(app)
             buttons.append(
                 dbc.Button([
                     html.I(className="fas fa-comment me-2"),
                     "Contact"
-                ], color="info", href=contact_href, className="flex-grow-1", target="_blank")
+                ], color="info", href=contact_href, className="flex-grow-1", target="_blank",
+                   style={"borderRadius": "6px", "fontWeight": "500", "boxShadow": "0 2px 4px rgba(0,0,0,0.1)"})
             )
-        
-        if not buttons:
-            # Fallback if neither url nor contact info is provided
+        else:
+            # Disabled Contact button when no contact info is available
             buttons.append(
                 dbc.Button([
-                    html.I(className="fas fa-info-circle me-2"),
-                    "No Link Available"
-                ], color="secondary", disabled=True, className="w-100")
+                    html.I(className="fas fa-comment me-2"),
+                    "Contact"
+                ], color="secondary", disabled=True, className="flex-grow-1",
+                   style={"borderRadius": "6px", "fontWeight": "500", "opacity": "0.65"})
             )
         
+        # Create the card with all components
         card = dbc.Card([
             # Add business area badge
             business_badge,
@@ -310,25 +359,33 @@ def create_app_cards(dept):
             dbc.CardBody([
                 # Card content container with flex display
                 html.Div([
-                    # Header section
+                    # Header section with app icon and name
                     html.Div([
-                        html.I(className=f"{icon} fa-2x me-2", style={"color": icon_color}),
-                        html.H5(app['name'], className="card-title d-inline-block align-middle mb-0")
+                        html.Div([html.I(className=f"{icon} fa-2x", style={"color": icon_color})], 
+                                 className="me-3", 
+                                 style={"width": "45px", "height": "45px", "display": "flex", "alignItems": "center", "justifyContent": "center"}),
+                        html.H5(app['name'], className="card-title mb-0", style={"fontWeight": "600"})
                     ], className="d-flex align-items-center mb-3"),
                     
                     # Description section - will stretch to fill available space
                     html.Div([
-                        html.P(app['description'], className="card-text")
+                        html.P(app['description'], className="card-text", style={"fontSize": "0.95rem", "lineHeight": "1.5"})
                     ], className="flex-grow-1 mb-3"),
                     
                     # Button section - always at the bottom
                     html.Div([
-                        # Display both buttons in a row if we have both
+                        # Display buttons in a row, if any
                         html.Div(buttons, className="d-flex")
                     ])
                 ], className="d-flex flex-column h-100") # Make the div take full height of card
             ])
-        ], className="mb-4 h-100 position-relative")  # Add position-relative for absolute positioning of badge
+        ], className="mb-4 h-100 position-relative shadow-sm", 
+           style={
+               "transition": "all 0.2s ease-in-out",
+               "borderRadius": "8px",
+               "overflow": "hidden", 
+               "border": "1px solid #e9ecef"
+           })  
         cards.append(card)
     return cards
 
@@ -404,7 +461,9 @@ navbar = dbc.Navbar(
                 dbc.Row(
                     [
                         dbc.Col(html.Img(src=company_info.get('logo_url', ''), height="40px"), className="me-2"),
-                        dbc.Col(dbc.NavbarBrand(company_info.get('name', config.get('title', "AI Portal")), className="ms-2")),
+                        dbc.Col(dbc.NavbarBrand(company_info.get('name', config.get('title', "AI Portal")), 
+                                               className="ms-2", 
+                                               style={"fontWeight": "600", "color": "#1565C0"})),
                     ],
                     align="center",
                     className="g-0",
@@ -412,7 +471,7 @@ navbar = dbc.Navbar(
                 href="#",
                 style={"textDecoration": "none"},
             ),
-            dbc.NavbarToggler(id="navbar-toggler"),
+            dbc.NavbarToggler(id="navbar-toggler", style={"border": "none", "boxShadow": "none"}),
             dbc.Collapse(
                 dbc.Nav(
                     [
@@ -425,22 +484,49 @@ navbar = dbc.Navbar(
                                 ],
                                 className="nav-link",
                                 style={"fontWeight": "500", "color": "#4a6fa5"},
-                            )
+                            ),
+                            className="d-flex align-items-center me-3"
                         ),
                         # Category navigation menu with properly formatted href links
                         dbc.DropdownMenu(
                             [dbc.DropdownMenuItem(
                                 [html.I(className=f"{config.get('departments', [])[i].get('icon', 'fa-solid fa-folder')} me-2"), dept], 
-                                href=f"#{dept.lower().replace(' ', '-')}"  # Ensure spaces are replaced with hyphens
+                                href=f"#{dept.lower().replace(' ', '-')}",  # Ensure spaces are replaced with hyphens
+                                style={"transition": "background-color 0.2s ease", "padding": "0.6rem 1rem"}
                              ) for i, dept in enumerate(categories)],
-                            label="Categories",
+                            label=html.Span([html.I(className="fa-solid fa-th-large me-2"), "Categories"]),
                             nav=True,
-                            className="mx-2"
+                            className="mx-2",
+                            style={"fontWeight": "500"},
+                            toggle_style={"borderRadius": "6px", "padding": "0.5rem 1rem"}
                         ),
                         # User profile dropdown
-                        user_dropdown,
+                        dbc.DropdownMenu(
+                            children=[
+                                dbc.DropdownMenuItem([
+                                    html.Div([
+                                        html.Img(src=user_info.get('avatar_url', ''), className="rounded-circle me-2", width=30, height=30),
+                                        html.Span(user_info.get('name', 'User')),
+                                    ], className="d-flex align-items-center")
+                                ], header=True),
+                                dbc.DropdownMenuItem(user_info.get('role', 'User'), header=True),
+                                dbc.DropdownMenuItem(divider=True),
+                                dbc.DropdownMenuItem([html.I(className="fas fa-user me-2"), "Profile"], 
+                                                   style={"transition": "background-color 0.2s ease", "padding": "0.6rem 1rem"}),
+                                dbc.DropdownMenuItem([html.I(className="fas fa-cog me-2"), "Settings"],
+                                                   style={"transition": "background-color 0.2s ease", "padding": "0.6rem 1rem"}),
+                                dbc.DropdownMenuItem(divider=True),
+                                dbc.DropdownMenuItem([html.I(className="fas fa-sign-out-alt me-2"), "Sign Out"],
+                                                   style={"transition": "background-color 0.2s ease", "padding": "0.6rem 1rem"}),
+                            ],
+                            nav=True,
+                            in_navbar=True,
+                            label=html.Img(src=user_info.get('avatar_url', 'assets/images/user-avatar.svg'), className="rounded-circle", width=36, height=36),
+                            toggle_style={"padding": "0", "border": "none"},
+                            align_end=True,
+                        ),
                     ],
-                    className="ms-auto",
+                    className="ms-auto align-items-center",
                     navbar=True,
                 ),
                 id="navbar-collapse",
@@ -449,34 +535,58 @@ navbar = dbc.Navbar(
         ],
         fluid=True,
     ),
-    color="light",
+    color="white",
     dark=False,
-    className="mb-4",
+    className="mb-4 shadow-sm",
     sticky="top",
+    style={"boxShadow": "0 2px 10px rgba(0,0,0,0.075)", "borderBottom": "1px solid #f0f0f0"}
 )
 
 # Create section header with toggle button
 def create_section_header(title, icon, section_id, color, description=None):
-    # Create a unique HTML ID for the section itself to help with debugging
+    """
+    Create a collapsible section header with toggle functionality.
+    
+    Args:
+        title (str): The title of the section
+        icon (str): FontAwesome icon class for the section
+        section_id (str): Unique identifier for the section
+        color (str): Base color for the section header (hex or rgba)
+        description (str, optional): Description text to display below the header
+        
+    Returns:
+        html.Div: The complete section header component
+    """
+    # Create a unique HTML ID for the section itself
     html_id = f"{section_id}"
     
-    # Create a chevron with clear styling
+    # Parse the color to create a softer version by reducing opacity
+    # If the color is in hex format, convert it to rgba with reduced opacity
+    if color.startswith('#'):
+        # Make base color slightly softer
+        softer_color = color + "cc"  # 80% opacity
+        gradient_end = color + "88"  # 53% opacity
+    else:
+        # If it's already in rgba or other format, just use it
+        softer_color = color
+        gradient_end = color
+    
+    # Create a chevron with consistent styling
     chevron = html.I(
         id={"type": "section-chevron", "index": section_id},
         className="fas fa-chevron-down",
         style={
             "transition": "transform 0.3s, background-color 0.2s",
-            "fontSize": "1.6rem",
+            "fontSize": "1.4rem",
             "color": "white",
-            "backgroundColor": "rgba(255, 255, 255, 0.2)",
+            "backgroundColor": "rgba(255, 255, 255, 0.25)",
             "borderRadius": "50%",
-            "width": "32px",
-            "height": "32px",
+            "width": "36px",
+            "height": "36px",
             "display": "flex",
             "alignItems": "center",
             "justifyContent": "center",
-            "boxShadow": "0 2px 4px rgba(0,0,0,0.15)",
-            "padding": "4px",
+            "boxShadow": "0 2px 4px rgba(0,0,0,0.1)",
             "backdropFilter": "blur(2px)"
         }
     )
@@ -493,12 +603,12 @@ def create_section_header(title, icon, section_id, color, description=None):
                 style={
                     "display": "flex", 
                     "alignItems": "center",
-                    "background": "rgba(255, 255, 255, 0.18)",
+                    "background": "rgba(255, 255, 255, 0.25)",
                     "borderRadius": "50%",
-                    "width": "40px",
-                    "height": "40px",
+                    "width": "45px",
+                    "height": "45px",
                     "justifyContent": "center",
-                    "boxShadow": "0 4px 8px rgba(0, 0, 0, 0.1)",
+                    "boxShadow": "0 4px 8px rgba(0, 0, 0, 0.08)",
                     "backdropFilter": "blur(5px)"
                 }),
                 
@@ -519,44 +629,71 @@ def create_section_header(title, icon, section_id, color, description=None):
             ], className="ms-auto")
         ],
         id={"type": "section-header", "index": section_id},
-        className="d-flex align-items-center justify-content-between mt-2 mb-1 section-header p-3 rounded",
+        className="d-flex align-items-center justify-content-between section-header p-3 rounded",
         style={
             "cursor": "pointer", 
             "userSelect": "none",
             "transition": "all 0.3s ease",
-            "background": f"linear-gradient(135deg, {color}, {color}dd, {color}00)",
-            "boxShadow": "0 4px 12px rgba(0, 0, 0, 0.1), inset 0 -2px 0 rgba(0, 0, 0, 0.1)",
-            "borderLeft": "4px solid white",
-            "backdropFilter": "blur(10px)",
+            "background": f"linear-gradient(135deg, {softer_color}, {gradient_end})",
+            "boxShadow": "0 3px 6px rgba(0, 0, 0, 0.08), inset 0 -1px 0 rgba(0, 0, 0, 0.05)",
+            "borderLeft": "4px solid rgba(255, 255, 255, 0.9)",
             "position": "relative",
-            "overflow": "hidden"
+            "overflow": "hidden",
+            "margin": "16px 0 8px 0"
         }
     )
     
-    # Container for header and description with reduced spacing
+    # Container for header and description
     return html.Div([
         header,
-        # Show description if provided, with reduced margins
-        html.P(description, className="my-3 text-muted", style={"fontSize": "0.9rem"}) if description else None
-    ], id=html_id)  # Add the HTML ID to the outer container
+        # Show description if provided, with consistent margins
+        html.P(description, 
+               className="mt-2 mb-3 text-muted", 
+               style={"fontSize": "0.95rem", "lineHeight": "1.5", "paddingLeft": "10px"}) if description else None
+    ], id=html_id, className="mb-4")  # Add spacing after the entire section header component
 
 # Create a regular section header without collapse functionality
 def create_regular_header(title, icon, color):
+    """
+    Create a non-collapsible section header with appropriate styling.
+    
+    Args:
+        title (str): The title of the section
+        icon (str): FontAwesome icon class for the section
+        color (str): Base color for the section header (hex or rgba)
+        
+    Returns:
+        html.Div: The styled header component
+    """
     if (title == app_store_title):  # Special styling for AI App Store
         return html.Div([
             html.Div([
-                html.I(className=f"{icon} fa-3x me-3", style={"color": color}),  # Larger icon for app store
+                html.Div(
+                    html.I(className=f"{icon} fa-3x", style={"color": color}),
+                    className="me-3 d-flex align-items-center justify-content-center",
+                    style={"width": "72px", "height": "72px"}
+                ),
                 html.H1(title, className="d-inline m-0", 
-                       style={"fontWeight": "700", "color": "#1565C0", "letterSpacing": "0.5px"})
-            ], className="d-flex align-items-center mt-4 mb-3"),
-        ])
+                       style={
+                           "fontWeight": "700", 
+                           "color": "#1565C0", 
+                           "letterSpacing": "0.5px",
+                           "borderBottom": "3px solid #e0e0e0",
+                           "paddingBottom": "8px"
+                       })
+            ], className="d-flex align-items-center mt-4 mb-4"),
+        ], className="pb-2")
     else:  # Regular styling for other headers
         return html.Div([
             html.Div([
-                html.I(className=f"{icon} fa-2x me-3", style={"color": color}),  # Increased to fa-2x
-                html.H2(title, className="d-inline m-0")
-            ], className="d-flex align-items-center mt-4 mb-2"),
-        ])
+                html.Div(
+                    html.I(className=f"{icon} fa-2x", style={"color": color}),
+                    className="me-3 d-flex align-items-center justify-content-center",
+                    style={"width": "50px", "height": "50px"}
+                ),
+                html.H2(title, className="d-inline m-0", style={"fontWeight": "600"})
+            ], className="d-flex align-items-center mt-4 mb-3"),
+        ], className="pb-2")
 
 # Create quick navigation links
 def create_quick_nav_links():
@@ -599,16 +736,18 @@ content = html.Div(
         # App Store section (not collapsible)
         html.Div([
             create_regular_header(app_store_title, app_store_icon, icon_colors.get("App Store")),
-            # Banner image
-            html.Img(src=app_store.get('banner_image', 'assets/images/app-store-banner.svg'), 
-                    className="img-fluid mb-3 rounded",
-                    alt="AI App Store Banner",
-                    style={"maxWidth": "100%"}),
+            # Banner image - container adjusted to match section width
+            html.Div([
+                html.Img(src=app_store.get('banner_image', 'assets/images/app-store-banner.svg'), 
+                        className="img-fluid rounded",
+                        alt="AI App Store Banner",
+                        style={"width": "100%"})
+            ], className="mb-3"),
             html.P(app_store_description, className="lead mb-3"),
             
             # Department quick links section
             html.Div([
-                html.H5("Explore Categories:", className="mb-3"),
+                html.H5("Explore Categories:", className="mb-3 fw-bold"),
                 html.Div([
                     html.A([
                         html.I(className=f"{next((d.get('icon', 'fa-solid fa-folder') for d in config.get('departments', []) if d['name'] == dept), 'fa-solid fa-folder')} me-2", 
@@ -622,14 +761,21 @@ content = html.Div(
                         "color": icon_colors.get(dept, '#4a6fa5'),
                         "border": f"1px solid {icon_colors.get(dept, '#4a6fa5')}",
                         "borderRadius": "50px",
-                        "transition": "all 0.3s ease",
-                        "boxShadow": "0 2px 5px rgba(0, 0, 0, 0.1)",
+                        "padding": "8px 16px",
+                        "fontWeight": "500",
+                        "transition": "all 0.2s ease",
+                        "boxShadow": "0 2px 5px rgba(0, 0, 0, 0.08)",
+                        ":hover": {
+                            "backgroundColor": icon_colors.get(dept, '#4a6fa5'),
+                            "color": "white"
+                        }
                     })
                     for dept in categories
                 ], className="d-flex flex-wrap mb-4")
-            ], className="bg-light p-3 rounded mb-4"),
+            ], className="bg-light p-4 rounded-3 mb-4 shadow-sm", 
+               style={"border": "1px solid #e9ecef"}),
             
-        ], className="mb-5", id="app-store-section"),
+        ], className="mb-5 px-0", id="app-store-section"),  # Removed padding to match section headers
         
         # Department sections - no direct app cards outside of these sections
         *[
@@ -653,35 +799,49 @@ content = html.Div(
         ]
     ],
     className="container",
-    style={"padding": "1rem"},
+    style={"padding": "1rem"}
 )
 
 # Footer with company information
 footer = html.Footer(
     dbc.Container(
         [
-            html.Hr(),
+            html.Hr(style={"opacity": "0.15"}),
             dbc.Row([
                 dbc.Col([
                     html.Div([
-                        html.Img(src=company_info.get('logo_url', ''), height="30px", className="me-2"),
-                        html.Span(company_info.get('name', config.get('title', "AI Portal")), className="fw-bold")
-                    ], className="d-flex align-items-center mb-2"),
-                    html.P("© 2025 All rights reserved.", className="text-muted small")
+                        html.Img(src=company_info.get('logo_url', ''), height="32px", className="me-2"),
+                        html.Span(company_info.get('name', config.get('title', "AI Portal")), 
+                                 className="fw-bold", 
+                                 style={"color": "#1565C0"})
+                    ], className="d-flex align-items-center mb-3"),
+                    html.P("© 2025 All rights reserved.", 
+                          className="text-muted small", 
+                          style={"fontSize": "0.85rem", "margin": "0"})
                 ], md=6),
                 dbc.Col([
                     html.Div([
-                        dbc.Button([html.I(className="fab fa-github")], color="link", className="text-dark me-2"),
-                        dbc.Button([html.I(className="fab fa-linkedin")], color="link", className="text-dark me-2"),
-                        dbc.Button([html.I(className="fab fa-twitter")], color="link", className="text-dark me-2")
+                        dbc.Button([html.I(className="fab fa-github fa-lg")], 
+                                  color="link", 
+                                  className="text-dark me-3 p-0",
+                                  style={"transition": "transform 0.2s", ":hover": {"transform": "translateY(-2px)"}}),
+                        dbc.Button([html.I(className="fab fa-linkedin fa-lg")], 
+                                  color="link", 
+                                  className="text-dark me-3 p-0",
+                                  style={"transition": "transform 0.2s", ":hover": {"transform": "translateY(-2px)"}}),
+                        dbc.Button([html.I(className="fab fa-twitter fa-lg")], 
+                                  color="link", 
+                                  className="text-dark p-0",
+                                  style={"transition": "transform 0.2s", ":hover": {"transform": "translateY(-2px)"}})
                     ], className="d-flex justify-content-end")
-                ], md=6, className="d-flex align-items-center")
+                ], md=6, className="d-flex align-items-center justify-content-end")
             ])
         ],
         fluid=True,
-        className="py-3"
+        className="py-4"
     ),
-    className="mt-5 bg-light"
+    className="mt-5 bg-light shadow-sm",
+    style={"borderTop": "1px solid #e9ecef"}
 )
 
 # App layout
@@ -692,6 +852,8 @@ dash_app.layout = html.Div([
     footer
 ])
 
+# --- Callbacks and Interactivity ---
+
 # Callback to toggle the navbar collapse on small screens
 @dash_app.callback(
     Output("navbar-collapse", "is_open"),
@@ -699,6 +861,7 @@ dash_app.layout = html.Div([
     [State("navbar-collapse", "is_open")],
 )
 def toggle_navbar_collapse(n, is_open):
+    """Toggle the navbar collapse state on mobile screens"""
     if n:
         return not is_open
     return is_open
@@ -743,6 +906,11 @@ dash_app.clientside_callback(
     [State({"type": "section-collapse", "index": ALL}, "is_open")]
 )
 def toggle_section_collapse(pathname, n_clicks_list, is_open_list):
+    """
+    Handle the collapsing/expanding of sections and update chevron styles accordingly.
+    
+    This function manages both the initial state on page load and user interactions.
+    """
     ctx = callback_context
     
     # If there's no trigger yet or the pathname changed (page load)
@@ -772,7 +940,7 @@ def toggle_section_collapse(pathname, n_clicks_list, is_open_list):
                 "display": "flex",
                 "alignItems": "center",
                 "justifyContent": "center",
-                "boxShadow": "0 2px 4px rgba(0,0,0,0.15)",
+                "boxShadow": "0 2px 4px rgba(0,0,0,0.1)",
                 "padding": "4px",
                 "opacity": "1.0"
             })
@@ -829,7 +997,8 @@ def toggle_section_collapse(pathname, n_clicks_list, is_open_list):
         # Return unchanged states if there's an error
         return dash.no_update, dash.no_update
 
-# Department navigation links - using a more robust approach with correct closures
+# --- Department Navigation Links ---
+
 # First, clear any existing callbacks to avoid conflicts
 for dept in categories:
     dept_id = dept.lower().replace(' ', '-')
@@ -850,6 +1019,7 @@ for dept in categories:
             prevent_initial_call=True
         )
         def navigate_to_department(n_clicks):
+            """Navigate to the specified department section"""
             if n_clicks:
                 return dept_id
             return dash.no_update
@@ -857,7 +1027,9 @@ for dept in categories:
     # Execute the function immediately to register the callback with the captured dept_id
     create_callback_for_dept()
 
-# Business Areas navigation - Using a single combined callback instead of individual callbacks
+# --- Business Areas Navigation ---
+
+# Using a single combined callback instead of individual callbacks
 @dash_app.callback(
     [Output(f"business-area-{area.lower().replace(' ', '-').replace('-', '_')}", "style") for area in business_areas] + 
     [Output("business-area-sections", "className")],
@@ -865,6 +1037,11 @@ for dept in categories:
     [State("business-area-sections", "className")]
 )
 def handle_business_area_navigation(*args):
+    """
+    Handle navigation between different business areas.
+    
+    Shows the selected business area and hides all others.
+    """
     # Get all n_clicks arguments (excluding the last state argument)
     n_clicks_list = args[:-1]
     current_class = args[-1]
@@ -894,6 +1071,8 @@ def handle_business_area_navigation(*args):
     
     # Return all outputs
     return area_styles + ["business-area-active"]
+
+# --- Main Entry Point ---
 
 if __name__ == '__main__':
     # Get port from environment variable or default to 8050
