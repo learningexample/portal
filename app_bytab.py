@@ -165,10 +165,11 @@ try:
                         
                         # Button section - always at the bottom
                         html.Div([
+                            # Use app.get('url') and check if it exists, fall back to contact or '#' if no URL
                             dbc.Button([
                                 html.I(className="fas fa-external-link-alt me-2"),
                                 "Launch App"
-                            ], color="primary", href=app['url'], className="w-100", target="_blank")
+                            ], color="primary", href=app.get('url', app.get('contact', '#')), className="w-100", target="_blank")
                         ])
                     ], className="d-flex flex-column h-100") # Make the div take full height of card
                 ])
