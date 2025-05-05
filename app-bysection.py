@@ -16,7 +16,15 @@ import yaml
 import dash
 from dash import dcc, html, Input, Output, State, callback_context, ALL
 import dash_bootstrap_components as dbc
+import time
+from datetime import datetime
 
+# Import logging utilities
+from utils.log import get_logger, log_activity, log_performance, log_button_click
+
+# Set up logger for this application
+logger = get_logger('app_bysection')
+logger.info("Starting Enterprise AI Portal - Collapsible Sections Version")
 
 # --- Configuration Management ---
 
@@ -26,6 +34,7 @@ def load_config():
     Returns a dictionary with configuration settings.
     """
     config_path = os.path.join(os.path.dirname(__file__), 'config.yaml')
+    start_time = time.time()
     try:
         with open(config_path, 'r') as file:
             config = yaml.safe_load(file)
@@ -35,28 +44,31 @@ def load_config():
         missing_sections = [section for section in required_sections if section not in config]
         
         if missing_sections:
-            print(f"Warning: Missing required sections in config.yaml: {', '.join(missing_sections)}")
-            print("Using default values for missing sections.")
+            logger.warning(f"Missing required sections in config.yaml: {', '.join(missing_sections)}")
+            logger.warning("Using default values for missing sections.")
             
             # Add default values for missing sections
             if 'company' not in config:
                 config['company'] = {'name': 'Enterprise', 'logo_url': 'assets/images/logo.svg', 'theme_color': '#4a6fa5'}
             if 'departments' not in config:
                 config['departments'] = []
-                
+        
+        execution_time = time.time() - start_time
+        log_performance("load_config", execution_time)
+        logger.info(f"Configuration loaded successfully in {execution_time:.4f}s")
         return config
     except FileNotFoundError:
-        print(f"Error: Configuration file not found at {config_path}")
-        print("Using default configuration.")
+        logger.error(f"Configuration file not found at {config_path}")
+        logger.warning("Using default configuration.")
         return {
             'company': {'name': 'Enterprise', 'logo_url': 'assets/images/logo.svg', 'theme_color': '#4a6fa5'},
             'departments': []
         }
     except yaml.YAMLError as e:
-        print(f"Error parsing YAML configuration: {e}")
+        logger.critical(f"Error parsing YAML configuration: {e}")
         sys.exit(1)  # Exit if YAML is malformed - critical error
     except Exception as e:
-        print(f"Unexpected error loading configuration: {e}")
+        logger.error(f"Unexpected error loading configuration: {e}")
         return {}
 
 # Load and validate configuration

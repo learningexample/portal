@@ -14,8 +14,13 @@ import json
 import sys
 import gc
 import threading
+from datetime import datetime
 from utils.performance_utils import memory_cache, measure_execution_time
+from utils.log import get_logger, log_button_click  # Updated import
 from flask import request
+
+# Get a logger for this module
+logger = get_logger('ai_portal')
 
 # Load configuration from YAML file
 @memory_cache(ttl_seconds=600)  # Cache config for 10 minutes
@@ -275,12 +280,18 @@ def create_app_cards(dept):
         return app_cards_cache[dept]
         
     cards = []
-    for app in apps.get(dept, []):
+    for i, app in enumerate(apps.get(dept, [])):
+        app_name = app.get('name', 'Unknown App')
         icon = app.get('icon', 'fa-solid fa-cube')  # Default icon if none specified
         business_area = app.get('business_area', 'All')  # Get business area or default to 'All'
         
+        # Generate unique IDs for buttons to track clicks
+        app_id = f"{dept.lower().replace(' ', '-')}-{app_name.lower().replace(' ', '-')}-{i}"
+        launch_id = f"launch-{app_id}"
+        contact_id = f"contact-{app_id}"
+        
         # Set icon color based on app name or fall back to department color
-        icon_color = app_icon_colors.get(app['name'], icon_colors.get(dept, company_info.get('theme_color', '#4a6fa5')))
+        icon_color = app_icon_colors.get(app_name, icon_colors.get(dept, company_info.get('theme_color', '#4a6fa5')))
         
         # Determine if we should show Launch App button or Contact Me button
         has_url = 'url' in app and app['url'] and app['url'].strip()
@@ -293,8 +304,13 @@ def create_app_cards(dept):
                 dbc.Button([
                     html.I(className="fas fa-external-link-alt me-2"),
                     "Launch App"
-                ], color="primary", href=app['url'], className="me-2 flex-grow-1", target="_blank",
-                   style={"borderRadius": "var(--border-radius)", "fontWeight": "500", "boxShadow": "0 2px 4px rgba(0,0,0,0.1)"})
+                ], 
+                id=launch_id,
+                color="primary", 
+                href=app['url'], 
+                className="me-2 flex-grow-1", 
+                target="_blank",
+                style={"borderRadius": "var(--border-radius)", "fontWeight": "500", "boxShadow": "0 2px 4px rgba(0,0,0,0.1)"})
             )
         else:
             # No URL - show "Coming Soon" button with hourglass icon
@@ -313,8 +329,13 @@ def create_app_cards(dept):
                 dbc.Button([
                     html.I(className="fas fa-comment me-2"),
                     "Contact"
-                ], color="info", href=contact_href, className="flex-grow-1", target="_blank",
-                   style={"borderRadius": "var(--border-radius)", "fontWeight": "500", "boxShadow": "0 2px 4px rgba(0,0,0,0.1)"})
+                ], 
+                id=contact_id,
+                color="info", 
+                href=contact_href, 
+                className="flex-grow-1", 
+                target="_blank",
+                style={"borderRadius": "var(--border-radius)", "fontWeight": "500", "boxShadow": "0 2px 4px rgba(0,0,0,0.1)"})
             )
         
         card = dbc.Card([
@@ -324,7 +345,7 @@ def create_app_cards(dept):
                     # Header section
                     html.Div([
                         html.I(className=f"{icon} fa-2x me-2", style={"color": icon_color}),
-                        html.H5(app['name'], className="card-title d-inline-block align-middle mb-0", style={"fontWeight": "600"})
+                        html.H5(app_name, className="card-title d-inline-block align-middle mb-0", style={"fontWeight": "600"})
                     ], className="d-flex align-items-center mb-3"),
                     
                     # Description section - will stretch to fill available space
@@ -347,6 +368,24 @@ def create_app_cards(dept):
                "border": "1px solid #e9ecef"
            })
         cards.append(card)
+        
+        # Register callbacks for button clicks if they have IDs
+        if has_url:
+            dash_app.callback(
+                Output("url", "href", allow_duplicate=True),
+                [Input(launch_id, "n_clicks")],
+                prevent_initial_call=True
+            )(lambda n_clicks, app_name=app_name, url=app.get('url', '#'): 
+                log_button_click(app_name, "Launch App", url) or app.get('url', '#') if n_clicks else dash.no_update)
+            
+        if has_contact:
+            contact_url = get_contact_href(app)
+            dash_app.callback(
+                Output("url", "href", allow_duplicate=True),
+                [Input(contact_id, "n_clicks")],
+                prevent_initial_call=True
+            )(lambda n_clicks, app_name=app_name, url=contact_url: 
+                log_button_click(app_name, "Contact", url) or contact_url if n_clicks else dash.no_update)
     
     # Store in cache
     app_cards_cache[dept] = cards

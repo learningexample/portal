@@ -20,17 +20,29 @@ from dash.dependencies import Input, Output, State
 import yaml
 import os
 import random
+import time
 from datetime import datetime
+
+# Import logging utilities
+from utils.log import get_logger, log_activity, log_performance, log_button_click
+
+# Set up logger for this application
+logger = get_logger('app_store')
+logger.info("Starting Enterprise AI Portal - App Store Inspired Version")
 
 # Load configuration from YAML file
 def load_config():
+    start_time = time.time()
     config_path = os.path.join(os.path.dirname(__file__), 'config.yaml')
     try:
         with open(config_path, 'r') as file:
             config = yaml.safe_load(file)
+        execution_time = time.time() - start_time
+        log_performance("load_config", execution_time)
+        logger.info(f"Configuration loaded successfully in {execution_time:.4f}s")
         return config
     except Exception as e:
-        print(f"Error loading configuration: {e}")
+        logger.error(f"Error loading configuration: {e}")
         return {}
 
 config = load_config()

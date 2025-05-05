@@ -10,10 +10,10 @@ import time
 import gc
 from typing import Dict, Any, Callable, Optional
 import logging
+from utils.log import get_logger
 
-# Setup logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Get logger for this module from the centralized logging module
+logger = get_logger('performance_utils')
 
 # Simple memory cache
 _cache: Dict[str, Dict[str, Any]] = {}

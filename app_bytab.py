@@ -16,17 +16,15 @@ COPILOT INSTRUCTIONS:
 # Add more comprehensive debug logging
 import sys
 import traceback
-import logging
+import time
+from datetime import datetime
+import logging  # Keep this for log levels
 
-# Configure logging
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout)
-    ]
-)
-logger = logging.getLogger('app_bytab')
+# Import logging utilities
+from utils.log import get_logger, log_activity, log_performance, log_button_click
+
+# Set up logger for this module
+logger = get_logger('app_bytab', level=logging.DEBUG)
 logger.info("Starting app_bytab.py")
 
 try:
@@ -36,6 +34,7 @@ try:
     from dash.dependencies import Input, Output, State
     import yaml
     import os
+    
     logger.info("All modules imported successfully.")
     
     # Load configuration from YAML file

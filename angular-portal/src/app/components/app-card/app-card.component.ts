@@ -1,0 +1,102 @@
+import { Component, Input } from '@angular/core';
+
+@Component({
+  selector: 'app-card',
+  template: `
+    <div class="app-card">
+      <div class="app-card-header">
+        <h3>{{name}}</h3>
+        <span class="app-badge" [ngClass]="{'app-badge-beta': status === 'Beta', 'app-badge-new': status === 'New'}">
+          {{status}}
+        </span>
+      </div>
+      <p class="app-card-description">{{description}}</p>
+      <div class="app-card-details">
+        <div class="app-card-tags">
+          <span *ngFor="let tag of tags" class="app-tag">{{tag}}</span>
+        </div>
+        <div class="app-card-actions">
+          <button class="app-button">Launch</button>
+        </div>
+      </div>
+    </div>
+  `,
+  styles: [`
+    .app-card {
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      background-color: white;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .app-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+    }
+    .app-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .app-card-header h3 {
+      margin: 0;
+      font-size: 1.2rem;
+    }
+    .app-badge {
+      font-size: 0.7rem;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+    .app-badge-beta {
+      background-color: #3498db;
+      color: white;
+    }
+    .app-badge-new {
+      background-color: #2ecc71;
+      color: white;
+    }
+    .app-card-description {
+      color: #555;
+      font-size: 0.9rem;
+      margin-bottom: 15px;
+    }
+    .app-card-details {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .app-card-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+    .app-tag {
+      background-color: #f0f0f0;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 0.8rem;
+      color: #555;
+    }
+    .app-button {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .app-button:hover {
+      background-color: #2980b9;
+    }
+  `]
+})
+export class AppCardComponent {
+  @Input() name: string = 'App Name';
+  @Input() description: string = 'App description goes here';
+  @Input() status: string = '';
+  @Input() tags: string[] = [];
+}

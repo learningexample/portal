@@ -5,6 +5,15 @@ Minimal version of app-bysection.py to test the core functionality
 import dash
 from dash import dcc, html, Input, Output, State, callback_context, ALL
 import dash_bootstrap_components as dbc
+import time
+from datetime import datetime
+
+# Import logging utilities
+from utils.log import get_logger, log_activity, log_performance, log_button_click
+
+# Set up logger for this minimal application
+logger = get_logger('app_bysection_minimal')
+logger.info("Starting Enterprise AI Portal - Minimal Version")
 
 # Initialize the app with a Bootstrap theme
 app = dash.Dash(__name__, 

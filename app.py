@@ -19,15 +19,23 @@ from dash.dependencies import Input, Output
 import yaml
 import os
 
+# Import logging utilities
+from utils.log import get_logger, log_activity, setup_logging, log_button_click
+
+# Set up logger for this application
+logger = get_logger('app')
+logger.info("Starting Enterprise AI Portal - Original Version")
+
 # Load configuration from YAML file
 def load_config():
     config_path = os.path.join(os.path.dirname(__file__), 'config.yaml')
     try:
         with open(config_path, 'r') as file:
             config = yaml.safe_load(file)
+        logger.info(f"Configuration loaded successfully from {config_path}")
         return config
     except Exception as e:
-        print(f"Error loading configuration: {e}")
+        logger.error(f"Error loading configuration: {e}")
         return {}
 
 config = load_config()

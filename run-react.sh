@@ -1,0 +1,16 @@
+#!/bin/bash
+# Script to run only the React version of the AI Portal
+
+# Stop any existing containers from the react compose file
+docker-compose -f docker-compose.react.yml down
+
+# Build and start the React portal services
+docker-compose -f docker-compose.react.yml up -d
+
+# Display status
+echo "React Portal is starting..."
+echo "Frontend will be accessible at: http://localhost:3000"
+echo "API will be accessible at: http://localhost:8050"
+echo ""
+echo "To view logs: docker-compose -f docker-compose.react.yml logs -f"
+echo "To stop services: docker-compose -f docker-compose.react.yml down"

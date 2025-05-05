@@ -3,7 +3,7 @@ services:
     image: httpd:2.4
     container_name: portal-apache
     ports:
-      - "0.0.0.0:8050:80"  # Bind to all network interfaces, not just localhost
+      - "0.0.0.0:8055:80"
     volumes:
       - ./apache/portal.conf:/usr/local/apache2/conf/extra/portal.conf
       - ./assets:/var/www/html/assets
@@ -12,20 +12,22 @@ services:
       - ai-portal-tabbed
       - ai-portal-bysection
       - ai-portal-appstore
+      - ai-portal-react
+      - ai-portal-angular
     networks:
       - portal-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "apachectl", "-t"]
-      interval: 60s       # Increased from 30s to 60s
+      interval: 60s
       timeout: 10s
       retries: 3
       start_period: 15s
     deploy:
       resources:
         limits:
-          cpus: '0.3'     # Reduced from 0.5 to 0.3
-          memory: 128M    # Reduced from 256M to 128M
+          cpus: '0.25'
+          memory: 128M
     command: >
       sh -c "
         sed -i '/LoadModule proxy_module/s/^#//g' /usr/local/apache2/conf/httpd.conf;
@@ -35,6 +37,11 @@ services:
         echo 'Include conf/extra/portal.conf' >> /usr/local/apache2/conf/httpd.conf;
         httpd-foreground
       "
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   ai-portal:
     build: .
@@ -43,23 +50,31 @@ services:
       - "8050"
     volumes:
       - ./config.yaml:/app/config.yaml:ro
+      - ./logs:/app/logs:rw
     environment:
       - PORT=8050
-      - WORKERS_PER_CORE=1  # New: reduced workers per core
+      - WORKERS=1
+      - WORKER_THREADS=1
+      - WORKER_CONNECTIONS=100
     networks:
       - portal-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "--silent", "--fail", "http://localhost:8050/_dash-layout"]
-      interval: 60s       # Increased from 30s to 60s
+      interval: 60s
       timeout: 10s
       retries: 3
       start_period: 15s
     deploy:
       resources:
         limits:
-          cpus: '0.5'     # Reduced from 1.0 to 0.5
-          memory: 256M    # Reduced from 512M to 256M
+          cpus: '0.5'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
   
   ai-portal-tabbed:
     build: .
@@ -68,24 +83,32 @@ services:
       - "8050"
     volumes:
       - ./config.yaml:/app/config.yaml:ro
+      - ./logs:/app/logs:rw
     environment:
       - PORT=8050
       - PORTAL_VERSION=tabbed
-      - WORKERS_PER_CORE=1  # New: reduced workers per core
+      - WORKERS=1
+      - WORKER_THREADS=1
+      - WORKER_CONNECTIONS=100
     networks:
       - portal-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "--silent", "--fail", "http://localhost:8050/_dash-layout"]
-      interval: 60s       # Increased from 30s to 60s
+      interval: 60s
       timeout: 10s
       retries: 3
       start_period: 15s
     deploy:
       resources:
         limits:
-          cpus: '0.5'     # Reduced from 1.0 to 0.5
-          memory: 256M    # Reduced from 512M to 256M
+          cpus: '0.5'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   ai-portal-bysection:
     build: .
@@ -94,24 +117,32 @@ services:
       - "8050"
     volumes:
       - ./config.yaml:/app/config.yaml:ro
+      - ./logs:/app/logs:rw
     environment:
       - PORT=8050
       - PORTAL_VERSION=bysection
-      - WORKERS_PER_CORE=1  # New: reduced workers per core
+      - WORKERS=1
+      - WORKER_THREADS=1
+      - WORKER_CONNECTIONS=100
     networks:
       - portal-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "--silent", "--fail", "http://localhost:8050/_dash-layout"]
-      interval: 60s       # Increased from 30s to 60s
+      interval: 60s
       timeout: 10s
       retries: 3
       start_period: 15s
     deploy:
       resources:
         limits:
-          cpus: '0.5'     # Reduced from 1.0 to 0.5
-          memory: 256M    # Reduced from 512M to 256M
+          cpus: '0.5'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   ai-portal-appstore:
     build: .
@@ -120,24 +151,88 @@ services:
       - "8050"
     volumes:
       - ./config.yaml:/app/config.yaml:ro
+      - ./logs:/app/logs:rw
     environment:
       - PORT=8050
       - PORTAL_VERSION=appstore
-      - WORKERS_PER_CORE=1  # New: reduced workers per core
+      - WORKERS=1
+      - WORKER_THREADS=1
+      - WORKER_CONNECTIONS=100
     networks:
       - portal-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "--silent", "--fail", "http://localhost:8050/_dash-layout"]
-      interval: 60s       # Increased from 30s to 60s
+      interval: 60s
       timeout: 10s
       retries: 3
       start_period: 15s
     deploy:
       resources:
         limits:
-          cpus: '0.5'     # Reduced from 1.0 to 0.5
-          memory: 256M    # Reduced from 512M to 256M
+          cpus: '0.5'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        
+  # New React-based Portal frontend
+  ai-portal-react:
+    build: ./react-portal
+    container_name: ai-portal-react
+    expose:
+      - "80"
+    volumes:
+      - ./assets:/usr/share/nginx/assets:ro
+    networks:
+      - portal-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        
+  # New Angular-based Portal frontend
+  ai-portal-angular:
+    build: ./angular-portal
+    container_name: ai-portal-angular
+    expose:
+      - "80"
+    volumes:
+      - ./assets:/usr/share/nginx/assets:ro
+    networks:
+      - portal-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 networks:
   portal-network:
