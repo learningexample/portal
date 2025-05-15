@@ -10,7 +10,7 @@ description: "Central portal for departmental AI applications"
 company:
   name: "TechCorp Solutions"
   logo_url: "assets/images/logo.svg"
-  theme_color: "#4a6fa5"
+  theme_color: "#1976D2"  # Default theme color (blue)
 
 # User information
 # ---------------
@@ -19,15 +19,6 @@ user:
   role: "AI Solutions Manager"
   avatar_url: "assets/images/user-avatar.svg"
   department: "IT Operations"
-
-# Visual styling
-# -------------
-# Department header colors for visual identification
-department_colors:
-  Internal Tools: "#1976D2"  # Blue
-  License Required: "#F57C00"  # Orange
-  App Store: "#1565C0"  # Blue
-  default: "#4a6fa5"  # Default fallback color
 
 # AI App Store configuration
 # -------------------------
@@ -43,36 +34,44 @@ app_store:
 departments:
   - name: "Internal Tools"
     icon: "fa-solid fa-tools"
+    color: "#1976D2"  # Section title and icon color
     description: "Tools for internal use only"
     apps:
       - name: "Chat with Documents"
-        url: "/chat-with-documents"
+        url: "http://www.yahoo.comhttp://www.yahoo.com"
         icon: "fa-solid fa-comments"
+        color: "#1976D2"  # App icon color
         description: "Chat with your documents using AI assistance"
 
       - name: "Compare Documents"
         icon: "fa-solid fa-file-contract"
+        color: "#1976D2"  # App icon color
         description: "Compare two documents and identify differences"
 
       - name: "RFP Assistant"
         icon: "fa-solid fa-file-signature"
+        color: "#1976D2"  # App icon color
         description: "AI-powered tool to help prepare and analyze Request for Proposals"
          
   - name: "License Required"
     icon: "fa-solid fa-key"
+    color: "#1976D2"  # Section title and icon color
     description: "These tools require a valid license to use"
     apps:
       - name: "ChatGPT Enterprise"
         url: "/chatgpt-enterprise"
         icon: "fa-solid fa-robot"
+        color: "#1976D2"  # App icon color
         description: "Enterprise-grade AI assistant with advanced capabilities"
 
       - name: "Microsoft Copilot"
         url: "/microsoft-copilot"
         icon: "fa-solid fa-circle-nodes"
+        color: "#1976D2"  # App icon color
         description: "AI assistant integrated with Microsoft products"
 
       - name: "Writer"
         url: "/writer"
         icon: "fa-solid fa-pen-fancy"
+        color: "#1976D2"  # App icon color
         description: "Professional AI writing assistant for creating high-quality content"
