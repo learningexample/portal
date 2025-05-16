@@ -237,9 +237,34 @@ def get_contact_href(app):
     if app.get('contact_email'):
         return f"mailto:{app.get('contact_email')}"
     if app.get('email'):
-        return f"mailto:{app.get('email')}"
-    
+        return f"mailto:{app.get('email')}"    
     return "#"
+
+def get_contact_display(app):
+    """
+    Get a display-friendly representation of contact information for an app.
+    
+    Args:
+        app (dict): The application configuration dictionary
+        
+    Returns:
+        str: Human-readable contact information for display
+    """
+    if app.get('contact_email'):
+        return app.get('contact_email')
+    elif app.get('email'):
+        return app.get('email')
+    elif app.get('contact') and '@' in app.get('contact', ''):
+        return app.get('contact')
+    elif app.get('contact'):
+        return app.get('contact')
+    elif app.get('contact_url'):
+        # Get domain from URL for display
+        from urllib.parse import urlparse
+        parsed_url = urlparse(app.get('contact_url'))
+        return parsed_url.netloc or "Support Portal"
+    
+    return "Unknown"
 
 # Create the app cards with colorful icons
 def create_app_cards(dept):
@@ -362,15 +387,12 @@ def create_app_cards(dept):
                 ], color="secondary", disabled=True, className="flex-grow-1",
                    style={"borderRadius": "6px", "fontWeight": "500", "opacity": "0.65"})
             )
-        
-        # Create the card with all components
+          # Create the card with all components
         card = dbc.Card([
             # Add business area badge
             business_badge,
-            
-            dbc.CardBody([
-                # Card content container with flex display
-                html.Div([
+              dbc.CardBody([
+                # Card content container with flex display                html.Div([
                     # Header section with app icon and name
                     html.Div([
                         html.Div([html.I(className=f"{icon} fa-2x", style={"color": icon_color})], 
@@ -378,25 +400,50 @@ def create_app_cards(dept):
                                  style={"width": "45px", "height": "45px", "display": "flex", "alignItems": "center", "justifyContent": "center"}),
                         html.H5(app['name'], className="card-title mb-0", style={"fontWeight": "600"})
                     ], className="d-flex align-items-center mb-3"),
-                    
-                    # Description section - will stretch to fill available space
+                      # Description section - will stretch to fill available space
                     html.Div([
                         html.P(app['description'], className="card-text", style={"fontSize": "0.95rem", "lineHeight": "1.5"})
-                    ], className="flex-grow-1 mb-3"),
+                    ], className="mb-3"),                    # App details unordered list
+                    html.Div([
+                        html.H6("App Details", className="mt-1 mb-2", style={"fontSize": "0.9rem", "fontWeight": "600", "color": "#555"}),
+                        html.Ul([
+                            html.Li([
+                                html.Strong("Category: ", style={"color": "#555"}), 
+                                html.Span(dept)
+                            ], style={"fontSize": "0.85rem", "marginBottom": "4px"}),
+                            html.Li([
+                                html.Strong("Business: ", style={"color": "#555"}), 
+                                html.Span(business_area)
+                            ], style={"fontSize": "0.85rem", "marginBottom": "4px"}),                            html.Li([
+                                html.Strong("Contact: ", style={"color": "#555"}), 
+                                html.Span(get_contact_display(app) if has_contact else "Not Available")
+                            ], style={"fontSize": "0.85rem", "marginBottom": "4px"}),                            html.Li([
+                                html.Strong("Phase: ", style={"color": "#555"}), 
+                                html.Span(app.get('phase', "Production" if has_url else "Development"))
+                            ], style={"fontSize": "0.85rem"})                        ], className="ps-3 mb-3", style={
+                            "listStyleType": "disc", 
+                            "backgroundColor": "#f8f9fa", 
+                            "padding": "8px 10px 8px 25px", 
+                            "borderRadius": "6px", 
+                            "borderLeft": "3px solid #dee2e6",
+                            "marginTop": "5px",
+                            "boxShadow": "0 1px 3px rgba(0,0,0,0.05)"
+                        })
+                    ], className="flex-grow-1"),
                     
                     # Button section - always at the bottom
                     html.Div([
                         # Display buttons in a row, if any
                         html.Div(buttons, className="d-flex")
-                    ])
-                ], className="d-flex flex-column h-100") # Make the div take full height of card
+                    ])                ], className="d-flex flex-column h-100") # Make the div take full height of card
             ])
         ], className="mb-4 h-100 position-relative shadow-sm", 
            style={
                "transition": "all 0.2s ease-in-out",
                "borderRadius": "8px",
                "overflow": "hidden", 
-               "border": "1px solid #e9ecef"
+               "border": "1px solid #e9ecef",
+               "minHeight": "380px"  # Set minimum height to accommodate the new list
            })  
         cards.append(card)
     return cards
