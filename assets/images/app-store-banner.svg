@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1200" height="300" viewBox="0 0 1200 300">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1200" height="240" viewBox="0 0 1200 240">
   <!-- Banner background with gradient -->
   <defs>
     <linearGradient id="banner-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -16,7 +16,7 @@
   </defs>
   
   <!-- Background rectangle -->
-  <rect width="1200" height="300" rx="15" ry="15" fill="url(#banner-gradient)" />
+  <rect width="1200" height="240" rx="15" ry="15" fill="url(#banner-gradient)" />
   
   <!-- Abstract network/circuit pattern -->
   <g opacity="0.2" stroke="#ffffff" stroke-width="1.5">
@@ -49,14 +49,13 @@
     <rect x="-15" y="10" width="10" height="20" fill="#ffffff" />
     <rect x="5" y="10" width="10" height="20" fill="#ffffff" />
   </g>
-  
-  <!-- Text content -->
+    <!-- Text content -->
   <g font-family="Arial, sans-serif" font-weight="bold" text-anchor="middle">
     <text x="600" y="140" font-size="48" fill="#ffffff" filter="url(#glow)">
       Enterprise AI App Store
     </text>
     <text x="600" y="190" font-size="22" fill="#ffffff" opacity="0.9">
-      Discover. Deploy. Transform.
+      Experiment. Adopt. Reimagine.
     </text>
   </g>
 </svg>
